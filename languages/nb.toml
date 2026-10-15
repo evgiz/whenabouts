@@ -1,0 +1,144 @@
+prepositions = ["i", "på", "fra", "om", "under", "rundt"]
+joiners = ["i", "på", ",", "-", "'"]
+
+[numbers]
+"{en,ett,ei,et}" = 1
+"to" = 2
+"tre" = 3
+"fire" = 4
+"fem" = 5
+"seks" = 6
+"{sju,syv}" = 7
+"åtte" = 8
+"ni" = 9
+"ti" = 10
+"elleve" = 11
+"tolv" = 12
+
+[units]
+"dag{,en,er,ene}" = "day"
+"døgn{,et}" = "day"
+"uk{e,en,a,er,ene}" = "week"
+"måned{,en,er,ene}" = "month"
+"år{,et,ene}" = "year"
+
+[phrases]
+# Months
+"januar" = "month(1)"
+"{februar,feb}" = "month(2)"
+"mars" = "month(3)"
+"{april,apr}" = "month(4)"
+"juni" = "month(6)"
+"juli" = "month(7)"
+"{august,aug}" = "month(8)"
+"{september,sep,sept}" = "month(9)"
+"{oktober,okt}" = "month(10)"
+"{november,nov}" = "month(11)"
+"{desember,des}" = "month(12)"
+
+# Seasons
+"våren" = "month(3..5)"
+"sommer{,en}" = "month(6..8)"
+"høst{,en}" = "month(9..11)"
+"{vinter,vinteren,vintren}" = "month(12..2)"
+
+# Weekdays
+"mandag{,en}" = "weekday(mon)"
+"tirsdag{,en}" = "weekday(tue)"
+"onsdag{,en}" = "weekday(wed)"
+"torsdag{,en}" = "weekday(thu)"
+"fredag{,en}" = "weekday(fri)"
+"lørdag{,en}" = "weekday(sat)"
+"søndag{,en}" = "weekday(sun)"
+
+# Holidays
+"jul{,en,a}" = "date(12-24..12-26)"
+"{jul,jule}aften{,en}" = "date(12-24)"
+"nyttårsaften{,en}" = "date(12-31)"
+"nyttår{,et}" = "date(12-31..01-01)"
+"syttende mai" = "date(05-17)"
+"nasjonaldag{,en}" = "date(05-17)"
+"sankthans{,aften}" = "date(06-23)"
+"st. hans{,aften}" = "date(06-23)"
+"{1.,første} juledag{,en}" = "date(12-25)"
+"{2.,andre} juledag{,en}" = "date(12-26)"
+"nyttårsdag{,en}" = "date(01-01)"
+"{første mai,arbeidernes dag}" = "date(05-01)"
+"valentinsdag{,en}" = "date(02-14)"
+"lucia{dag,dagen}" = "date(12-13)"
+"{halloween,allehelgensaften}" = "date(10-31)"
+"påsk{e,en,a,eferie,eferien}" = "easter(-7..1)"
+"langfredag{,en}" = "easter(-2)"
+"pinse{,n}" = "easter(49..50)"
+"palmesøndag{,en}" = "easter(-7)"
+"skjærtorsdag{,en}" = "easter(-3)"
+"påskeaften{,en}" = "easter(-1)"
+"{1.,første} påskedag{,en}" = "easter(0)"
+"{2.,andre} påskedag{,en}" = "easter(1)"
+"kristi himmelfart{,sdag,sdagen}" = "easter(39)"
+"{1.,første} pinsedag{,en}" = "easter(49)"
+"{2.,andre} pinsedag{,en}" = "easter(50)"
+"advent{,en,stid,stiden}" = "date(11-27..12-24)"
+
+# Holiday periods
+"romjul{,en,a}" = "date(12-27..12-31)"
+"fellesferie{,n}" = "week(27..31)"
+
+# Weekends
+"helg" = "weekday(sat..sun)"
+"{,i ,i,denne }helg{en,a}" = "weekday(sat..sun) from back(0)"
+
+# School holidays: vary by municipality and year, so the ranges are wide on purpose
+"juleferie{,n}" = "date(12-20..01-03)"
+"vinterferie{,n}" = "week(8..9)"
+"høstferie{,n}" = "week(40..41)"
+"sommerferie{,n}" = "date(06-15..08-25)"
+
+# Latest and previous
+"{i ,i}vår" = "month(3..5) from back(0)"
+"{i ,i}sommer" = "month(6..8) from back(0)"
+"{i ,i}høst" = "month(9..11) from back(0)"
+"{i ,i}vinter" = "month(12..2) from back(0)"
+"{i ,i}jul{,en,a}" = "date(12-24..12-26) from back(0)"
+"{i ,i}påsk{e,en,a}" = "easter(-7..1) from back(0)"
+
+# Relative to today
+"{i ,i}dag" = "ago(day, 0)"
+"{i ,i}går" = "ago(day, 1)"
+"{i ,i}forgårs" = "ago(day, 2)"
+"{i ,i}år" = "ago(year, 0)"
+"{i ,i}fjor" = "ago(year, 1)"
+"{i ,i}forfjor" = "ago(year, 2)"
+"{i ,i}morges" = "ago(day, 0)"
+"{i ,i}kveld" = "ago(day, 0)"
+"{i ,i}går{ ,}kveld" = "ago(day, 1)"
+"{denne,dette} <unit>" = "ago(<unit>, 0)"
+"forrige <unit>" = "ago(<unit>, 1)"
+"{for ,}<n> <unit> siden" = "ago(<unit>, <n>)"
+"{de ,}siste <n> <unit>" = "last(<unit>, <n>)"
+"{den ,}siste uk{e,en,a}" = "last(week, 1)"
+"{den ,}siste måned{,en}" = "last(month, 1)"
+"{det ,}siste år{,et}" = "last(year, 1)"
+"{det ,}siste døgn{,et}" = "last(day, 1)"
+"uke <n>" = "week(<n>)"
+
+# Years and dates
+"<year>" = "year(<year>)"
+"<day>." = "day(<day>)"
+"<day>.<month>.<year>" = "month(<month>) & day(<day>) from year(<year>)"
+"<day>.<month>.<yy>" = "month(<month>) & day(<day>) from year(<yy>)"
+"<year>-<month>-<day>" = "month(<month>) & day(<day>) from year(<year>)"
+
+# Ambiguous words, with a preposition
+"{i,fra,om,rundt,under} mai" = "month(5)"
+"{i,fra} jan" = "month(1)"
+"på lucia" = "date(12-13)"
+
+[partial]
+"jan" = "month(1)"
+"mai" = "month(5)"
+"vår" = "month(3..5)"
+"lucia" = "date(12-13)"
+"{forrige,sist}" = "back(1)"
+"{denne,dette}" = "back(0)"
+"<yy>" = "year(<yy>)"

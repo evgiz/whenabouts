@@ -1,0 +1,180 @@
+# US English: weeks start on Sunday, numeric dates are month/day/year.
+week_start = "sun"
+
+# Words like "since", "before" and "after" are left out on purpose: they don't
+# mean "within", so they stay in the rest of the query.
+prepositions = [
+    "in", "on", "at", "from", "during", "over", "around", "the",
+    "in the", "on the", "at the", "from the", "during the", "over the", "around the",
+]
+joiners = ["in", "of", "the", ",", "-"]
+
+[numbers]
+"{a,an,one}" = 1
+"two" = 2
+"three" = 3
+"four" = 4
+"five" = 5
+"six" = 6
+"seven" = 7
+"eight" = 8
+"nine" = 9
+"ten" = 10
+"eleven" = 11
+"twelve" = 12
+
+[units]
+"day{,s}" = "day"
+"week{,s}" = "week"
+"month{,s}" = "month"
+"{year,yr}{,s}" = "year"
+
+[phrases]
+# Months
+"january" = "month(1)"
+"{february,feb}" = "month(2)"
+"{april,apr}" = "month(4)"
+"{june,jun}" = "month(6)"
+"{july,jul}" = "month(7)"
+"{august,aug}" = "month(8)"
+"{september,sep,sept}" = "month(9)"
+"{october,oct}" = "month(10)"
+"{november,nov}" = "month(11)"
+"{december,dec}" = "month(12)"
+
+# Month and day: "may 17", "may 17th", "17 may". "17th may" is read as a day and a month.
+"{january,jan} <day>{,st,nd,rd,th}" = "month(1) & day(<day>)"
+"{february,feb} <day>{,st,nd,rd,th}" = "month(2) & day(<day>)"
+"{march,mar} <day>{,st,nd,rd,th}" = "month(3) & day(<day>)"
+"{april,apr} <day>{,st,nd,rd,th}" = "month(4) & day(<day>)"
+"may <day>{,st,nd,rd,th}" = "month(5) & day(<day>)"
+"{june,jun} <day>{,st,nd,rd,th}" = "month(6) & day(<day>)"
+"{july,jul} <day>{,st,nd,rd,th}" = "month(7) & day(<day>)"
+"{august,aug} <day>{,st,nd,rd,th}" = "month(8) & day(<day>)"
+"{september,sep,sept} <day>{,st,nd,rd,th}" = "month(9) & day(<day>)"
+"{october,oct} <day>{,st,nd,rd,th}" = "month(10) & day(<day>)"
+"{november,nov} <day>{,st,nd,rd,th}" = "month(11) & day(<day>)"
+"{december,dec} <day>{,st,nd,rd,th}" = "month(12) & day(<day>)"
+"<day> {january,jan}" = "month(1) & day(<day>)"
+"<day> {february,feb}" = "month(2) & day(<day>)"
+"<day> {march,mar}" = "month(3) & day(<day>)"
+"<day> {april,apr}" = "month(4) & day(<day>)"
+"<day> may" = "month(5) & day(<day>)"
+"<day> {june,jun}" = "month(6) & day(<day>)"
+"<day> {july,jul}" = "month(7) & day(<day>)"
+"<day> {august,aug}" = "month(8) & day(<day>)"
+"<day> {september,sep,sept}" = "month(9) & day(<day>)"
+"<day> {october,oct}" = "month(10) & day(<day>)"
+"<day> {november,nov}" = "month(11) & day(<day>)"
+"<day> {december,dec}" = "month(12) & day(<day>)"
+
+# Seasons
+"{spring,springs}" = "month(3..5)"
+"{summer,summers}" = "month(6..8)"
+"{autumn,autumns,falls}" = "month(9..11)"
+"{winter,winters}" = "month(12..2)"
+
+# Weekdays
+"monday{,s}" = "weekday(mon)"
+"tuesday{,s}" = "weekday(tue)"
+"wednesday{,s}" = "weekday(wed)"
+"thursday{,s}" = "weekday(thu)"
+"friday{,s}" = "weekday(fri)"
+"saturday{,s}" = "weekday(sat)"
+"sunday{,s}" = "weekday(sun)"
+
+# Weekends: "weekends" is any, "the weekend" the latest
+"weekend{,s}" = "weekday(sat..sun)"
+"the weekend" = "weekday(sat..sun) from back(0)"
+
+# Holidays
+"{christmas,xmas}" = "date(12-24..12-25)"
+"{christmas,xmas} eve" = "date(12-24)"
+"{christmas,xmas} day" = "date(12-25)"
+"new year{,s,'s,’s}" = "date(12-31..01-01)"
+"new year{,s,'s,’s} eve" = "date(12-31)"
+"new year{,s,'s,’s} day" = "date(01-01)"
+"valentine{s,'s,’s}{, day}" = "date(02-14)"
+"valentine day" = "date(02-14)"
+"{st.,st,saint} patrick{s,'s,’s} day" = "date(03-17)"
+"halloween" = "date(10-31)"
+"{independence day,fourth of july}" = "date(07-04)"
+"easter{, weekend}" = "easter(-2..1)"
+"easter sunday" = "easter(0)"
+"easter monday" = "easter(1)"
+"good friday" = "easter(-2)"
+"maundy thursday" = "easter(-3)"
+"palm sunday" = "easter(-7)"
+"holy week" = "easter(-7..-1)"
+
+# Holidays on a weekday within a range of dates, like the fourth Thursday of November
+"thanksgiving{, day}" = "date(11-22..11-28) & weekday(thu)"
+"black friday" = "date(11-23..11-29) & weekday(fri)"
+"{mlk,martin luther king} day" = "date(01-15..01-21) & weekday(mon)"
+"president{s,'s,’s,s',s’} day" = "date(02-15..02-21) & weekday(mon)"
+"memorial day" = "date(05-25..05-31) & weekday(mon)"
+"labor day" = "date(09-01..09-07) & weekday(mon)"
+"mother{s,'s,’s} day" = "date(05-08..05-14) & weekday(sun)"
+"father{s,'s,’s} day" = "date(06-15..06-21) & weekday(sun)"
+
+# Holiday periods: vary by school and year, so the ranges are wide on purpose
+"spring break" = "week(10..13)"
+"{christmas,winter} break" = "date(12-20..01-03)"
+"holiday season" = "date(11-22..01-01)"
+
+# Relative to today
+"today" = "ago(day, 0)"
+"tonight" = "ago(day, 0)"
+"this {morning,afternoon,evening}" = "ago(day, 0)"
+"yesterday" = "ago(day, 1)"
+"yesterday {morning,afternoon,evening,night}" = "ago(day, 1)"
+"last night" = "ago(day, 1)"
+"the day before yesterday" = "ago(day, 2)"
+"the year before last" = "ago(year, 2)"
+# Singular only: "last days" and "this years" are something else.
+"this week" = "ago(week, 0)"
+"this month" = "ago(month, 0)"
+"this {year,yr}" = "ago(year, 0)"
+"last week" = "ago(week, 1)"
+"last month" = "ago(month, 1)"
+"last {year,yr}" = "ago(year, 1)"
+"<n> <unit> ago" = "ago(<unit>, <n>)"
+"a couple {of ,}<unit> ago" = "ago(<unit>, 2)"
+"{a ,}fortnight ago" = "ago(week, 2)"
+
+# The last stretch of time up to now. "the last week" is the last 7 days,
+# while "last week" is the calendar week before this one.
+"{the ,}{last,past} <n> <unit>" = "last(<unit>, <n>)"
+"{the last,the past,past} week" = "last(week, 1)"
+"{the last,the past,past} month" = "last(month, 1)"
+"{the last,the past,past} year" = "last(year, 1)"
+"week <n>" = "week(<n>)"
+
+# Years and dates
+"<year>" = "year(<year>)"
+"{',’}<yy>" = "year(<yy>)"
+"<day>{st,nd,rd,th}" = "day(<day>)"
+"<month>/<day>/<year>" = "month(<month>) & day(<day>) from year(<year>)"
+"<month>/<day>/<yy>" = "month(<month>) & day(<day>) from year(<yy>)"
+"<year>-<month>-<day>" = "month(<month>) & day(<day>) from year(<year>)"
+
+# Ambiguous words, with a preposition
+"{in,during,from,around} {march,mar}" = "month(3)"
+"{in,during,from,around} may" = "month(5)"
+"{in,during,from,around} jan" = "month(1)"
+"{in,during} {the ,}fall" = "month(9..11)"
+
+[partial]
+"{march,mar}" = "month(3)"
+"may" = "month(5)"
+"jan" = "month(1)"
+"fall" = "month(9..11)"
+"mon" = "weekday(mon)"
+"{tue,tues}" = "weekday(tue)"
+"wed" = "weekday(wed)"
+"{thu,thur,thurs}" = "weekday(thu)"
+"fri" = "weekday(fri)"
+"sat" = "weekday(sat)"
+"sun" = "weekday(sun)"
+"last" = "back(1)"
+"this" = "back(0)"

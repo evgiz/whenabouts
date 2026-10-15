@@ -1,0 +1,201 @@
+[months]
+"pictures of cats in may" = { "in may" = "month(5)" }
+"december" = { "december" = "month(12)" }
+"august" = { "august" = "month(8)" }
+"march 2021" = { "march 2021" = "month(3) from year(2021)" }
+"dogs in january" = { "in january" = "month(1)" }
+"photos from sept" = { "from sept" = "month(9)" }
+"hiking in march" = { "in march" = "month(3)" }
+"during may" = { "during may" = "month(5)" }
+"jan 2020" = { "jan 2020" = "month(1) from year(2020)" }
+
+[relative]
+"photos of dogs last year" = { "last year" = "ago(year, 1)" }
+"yesterday" = { "yesterday" = "ago(day, 1)" }
+"dinner today" = { "today" = "ago(day, 0)" }
+"tonight" = { "tonight" = "ago(day, 0)" }
+"this morning" = { "this morning" = "ago(day, 0)" }
+"last night" = { "last night" = "ago(day, 1)" }
+"yesterday evening" = { "yesterday evening" = "ago(day, 1)" }
+"the day before yesterday" = { "the day before yesterday" = "ago(day, 2)" }
+"this year" = { "this year" = "ago(year, 0)" }
+"the year before last" = { "the year before last" = "ago(year, 2)" }
+"photos from last month" = { "from last month" = "ago(month, 1)" }
+
+[weeks_start_on_sunday]
+"last week" = { "last week" = "ago(week(sun), 1)" }
+"this week" = { "this week" = "ago(week(sun), 0)" }
+"2 weeks ago" = { "2 weeks ago" = "ago(week(sun), 2)" }
+"a fortnight ago" = { "a fortnight ago" = "ago(week(sun), 2)" }
+"saturday last week" = { "saturday last week" = "weekday(sat) from ago(week(sun), 1)" }
+"week 32" = { "week 32" = "week(32)" }
+"vacation in week 28" = { "in week 28" = "week(28)" }
+
+[ago]
+"3 years ago" = { "3 years ago" = "ago(year, 3)" }
+"three days ago" = { "three days ago" = "ago(day, 3)" }
+"a year ago" = { "a year ago" = "ago(year, 1)" }
+"one month ago" = { "one month ago" = "ago(month, 1)" }
+"a couple of weeks ago" = { "a couple of weeks ago" = "ago(week(sun), 2)" }
+"3yrs ago" = { "3yrs ago" = "ago(year, 3)" }
+"christmas 2 years ago" = { "christmas 2 years ago" = "date(12-24..12-25) from ago(year, 2)" }
+
+# "last week" is the previous calendar week; "the last week" is the last 7 days.
+[last]
+"the last week" = { "the last week" = "last(week, 1)" }
+"the past week" = { "the past week" = "last(week, 1)" }
+"in the last month" = { "in the last month" = "last(month, 1)" }
+"last 3 months" = { "last 3 months" = "last(month, 3)" }
+"the past ten days" = { "the past ten days" = "last(day, 10)" }
+"over the past 2 years" = { "over the past 2 years" = "last(year, 2)" }
+
+# "the" or "this" with a time means the latest one; without it, any.
+[latest]
+"beach this summer" = { "this summer" = "month(6..8) from back(0)" }
+"last summer" = { "last summer" = "month(6..8) from back(1)" }
+"last christmas" = { "last christmas" = "date(12-24..12-25) from back(1)" }
+"last friday" = { "last friday" = "weekday(fri) from back(1)" }
+"last may" = { "last may" = "month(5) from back(1)" }
+"this fall" = { "this fall" = "month(9..11) from back(0)" }
+"last easter" = { "last easter" = "easter(-2..1) from back(1)" }
+
+[seasons]
+"summer" = { "summer" = "month(6..8)" }
+"in the summer" = { "in the summer" = "month(6..8)" }
+"summers at the lake" = { "summers" = "month(6..8)" }
+"autumn" = { "autumn" = "month(9..11)" }
+"in the fall" = { "in the fall" = "month(9..11)" }
+"fall 2020" = { "fall 2020" = "month(9..11) from year(2020)" }
+"spring" = { "spring" = "month(3..5)" }
+"winter" = { "winter" = "month(12..2)" }
+"summer of 2023" = { "summer of 2023" = "month(6..8) from year(2023)" }
+"summer '95" = { "summer '95" = "month(6..8) from year(1995)" }
+"summer ’95" = { "summer ’95" = "month(6..8) from year(1995)" }
+
+[weekdays]
+"on friday" = { "on friday" = "weekday(fri)" }
+"on fridays" = { "on fridays" = "weekday(fri)" }
+"mondays in may" = { "mondays in may" = "month(5) & weekday(mon)" }
+"friday in week 32" = { "friday in week 32" = "week(32) & weekday(fri)" }
+"friday the 13th" = { "friday the 13th" = "day(13) & weekday(fri)" }
+
+[weekends]
+"weekend trip" = { "weekend" = "weekday(sat..sun)" }
+"on weekends" = { "on weekends" = "weekday(sat..sun)" }
+"this weekend" = { "this weekend" = "weekday(sat..sun) from back(0)" }
+"photos from the weekend" = { "from the weekend" = "weekday(sat..sun) from back(0)" }
+"over the weekend" = { "over the weekend" = "weekday(sat..sun) from back(0)" }
+"last weekend" = { "last weekend" = "weekday(sat..sun) from back(1)" }
+
+[dates]
+"may 17" = { "may 17" = "date(05-17)" }
+"may 17th" = { "may 17th" = "date(05-17)" }
+"17th of may" = { "17th of may" = "date(05-17)" }
+"on the 17th of may" = { "on the 17th of may" = "date(05-17)" }
+"17 may 2020" = { "17 may 2020" = "date(05-17) from year(2020)" }
+"may 17, 2020" = { "may 17, 2020" = "date(05-17) from year(2020)" }
+"may 17th 2020" = { "may 17th 2020" = "date(05-17) from year(2020)" }
+"june 1st" = { "june 1st" = "date(06-01)" }
+"august 2nd" = { "august 2nd" = "date(08-02)" }
+"october 3rd" = { "october 3rd" = "date(10-03)" }
+"5/17/2020" = { "5/17/2020" = "date(05-17) from year(2020)" }
+"07/14/23" = { "07/14/23" = "date(07-14) from year(2023)" }
+"2023-07-14" = { "2023-07-14" = "date(07-14) from year(2023)" }
+"birthday june 3" = { "june 3" = "date(06-03)" }
+"the 3rd last month" = { "the 3rd last month" = "day(3) from ago(month, 1)" }
+
+[years]
+"2024" = { "2024" = "year(2024)" }
+"photos from 2019" = { "from 2019" = "year(2019)" }
+"in 2019" = { "in 2019" = "year(2019)" }
+
+[holidays]
+"christmas" = { "christmas" = "date(12-24..12-25)" }
+"xmas 2019" = { "xmas 2019" = "date(12-24..12-25) from year(2019)" }
+"christmas eve" = { "christmas eve" = "date(12-24)" }
+"christmas day last year" = { "christmas day last year" = "date(12-25) from ago(year, 1)" }
+"new year's eve" = { "new year's eve" = "date(12-31)" }
+"new years eve" = { "new years eve" = "date(12-31)" }
+"new year’s eve" = { "new year’s eve" = "date(12-31)" }
+"new year's day" = { "new year's day" = "date(01-01)" }
+"new year 2020" = { "new year 2020" = "date(12-31..01-01) from year(2020)" }
+"valentine's day" = { "valentine's day" = "date(02-14)" }
+"valentines" = { "valentines" = "date(02-14)" }
+"halloween 2022" = { "halloween 2022" = "date(10-31) from year(2022)" }
+"st. patrick's day" = { "st. patrick's day" = "date(03-17)" }
+"fourth of july" = { "fourth of july" = "date(07-04)" }
+"4th of july" = { "4th of july" = "date(07-04)" }
+"july 4th" = { "july 4th" = "date(07-04)" }
+"independence day" = { "independence day" = "date(07-04)" }
+"easter 2019" = { "easter 2019" = "easter(-2..1) from year(2019)" }
+"easter sunday" = { "easter sunday" = "easter(0)" }
+"good friday" = { "good friday" = "easter(-2)" }
+"easter monday" = { "easter monday" = "easter(1)" }
+"palm sunday" = { "palm sunday" = "easter(-7)" }
+
+# Fall on a weekday in a range of dates: the fourth Thursday of November, etc.
+[nth_weekday_holidays]
+"thanksgiving" = { "thanksgiving" = "date(11-22..11-28) & weekday(thu)" }
+"thanksgiving 2023" = { "thanksgiving 2023" = "date(11-22..11-28) & weekday(thu) from year(2023)" }
+"black friday" = { "black friday" = "date(11-23..11-29) & weekday(fri)" }
+"memorial day" = { "memorial day" = "date(05-25..05-31) & weekday(mon)" }
+"labor day weekend" = { "labor day" = "date(09-01..09-07) & weekday(mon)", "weekend" = "weekday(sat..sun)" }
+"mother's day" = { "mother's day" = "date(05-08..05-14) & weekday(sun)" }
+"fathers day" = { "fathers day" = "date(06-15..06-21) & weekday(sun)" }
+
+[holiday_periods]
+"spring break 2022" = { "spring break 2022" = "week(10..13) from year(2022)" }
+"christmas break" = { "christmas break" = "date(12-20..01-03)" }
+"the holiday season" = { "the holiday season" = "date(11-22..01-01)" }
+
+[upper_case]
+"photos from LAST YEAR" = { "from LAST YEAR" = "ago(year, 1)" }
+"Christmas Eve" = { "Christmas Eve" = "date(12-24)" }
+
+[multiple]
+"christmas 2019 and easter 2020" = { "christmas 2019" = "date(12-24..12-25) from year(2019)", "easter 2020" = "easter(-2..1) from year(2020)" }
+
+[realistic]
+"kids at the beach summer 2021" ={ "summer 2021" = "month(6..8) from year(2021)" }
+"snow in february two years ago" = { "in february two years ago" = "month(2) from ago(year, 2)" }
+"dinner with family on christmas eve" = { "on christmas eve" = "date(12-24)" }
+"birthday last year" = { "last year" = "ago(year, 1)" }
+"hiking photos from october" = { "from october" = "month(10)" }
+"pictures from the 4th of july parade" = { "from the 4th of july" = "date(07-04)" }
+
+[punctuation]
+"photos from last year!" = { "from last year" = "ago(year, 1)" }
+"(summer 2019)" = { "summer 2019" = "month(6..8) from year(2019)" }
+"christmas, 2018" = { "christmas, 2018" = "date(12-24..12-25) from year(2018)" }
+
+[separate]
+"photos from may and june" = { "from may" = "month(5)", "june" = "month(6)" }
+"2019 and 2020" = { "2019" = "year(2019)", "2020" = "year(2020)" }
+
+# Words that are often something else.
+[nothing]
+"pictures of cats" = {}
+"things that may happen" = {}
+"march of the penguins" = {}
+"sat on a bench" = {}
+"the sun at noon" = {}
+"leaves fall down" = {}
+"jan's birthday" = {}
+"on the 4th floor" = {}
+"second place" = {}
+"top 10 in may" = { "in may" = "month(5)" }
+"3 cats" = {}
+"" = {}
+"1800" = {}
+"12345" = {}
+"may 32" = {}
+"3 years old" = {}
+"a long time ago" = {}
+"the last days" = {}
+"week 60" = {}
+"10km run" = {}
+"covid19" = {}
+"2/30/2020" = { "2020" = "year(2020)" }
+"3/4 cup" = {}
+"since 2020" = { "2020" = "year(2020)" }
+"before christmas" = { "christmas" = "date(12-24..12-25)" }

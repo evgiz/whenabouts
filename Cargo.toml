@@ -1,0 +1,22 @@
+[package]
+name = "whenabouts"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Fast natural-language date period extraction for search queries"
+license = "MIT"
+repository = "https://github.com/evgiz/whenabouts"
+keywords = ["date", "natural-language", "search", "parser", "time"]
+categories = ["date-and-time", "parser-implementations", "text-processing"]
+
+[dependencies]
+indexmap = { version = "2.14.2", features = ["serde"] }
+jiff = { version = "0.2.38", default-features = false, features = [
+    "std",
+    "tz-system",
+    "tzdb-zoneinfo",
+    "tzdb-bundle-platform",
+    "tzdb-concatenated",
+] }
+serde = { version = "1", features = ["derive"] }
+toml = "1.1.8"

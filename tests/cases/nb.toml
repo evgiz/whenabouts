@@ -1,0 +1,224 @@
+[months]
+"bilder av katter i mai" = { "i mai" = "month(5)" }
+"desember" = { "desember" = "month(12)" }
+"august" = { "august" = "month(8)" }
+"mars 2021" = { "mars 2021" = "month(3) from year(2021)" }
+"hunder i januar" = { "i januar" = "month(1)" }
+"bilder fra sept" = { "fra sept" = "month(9)" }
+
+[relative]
+"bilder av hunder i fjor" = { "i fjor" = "ago(year, 1)" }
+"i går" = { "i går" = "ago(day, 1)" }
+"middag i dag" = { "i dag" = "ago(day, 0)" }
+"i år" = { "i år" = "ago(year, 0)" }
+"i forfjor" = { "i forfjor" = "ago(year, 2)" }
+"forrige uke" = { "forrige uke" = "ago(week, 1)" }
+"bilder fra forrige måned" = { "fra forrige måned" = "ago(month, 1)" }
+"denne uken" = { "denne uken" = "ago(week, 0)" }
+"for 3 år siden" = { "for 3 år siden" = "ago(year, 3)" }
+"for tre uker siden" = { "for tre uker siden" = "ago(week, 3)" }
+"to dager siden" = { "to dager siden" = "ago(day, 2)" }
+"for et år siden" = { "for et år siden" = "ago(year, 1)" }
+"denne uka" = { "denne uka" = "ago(week, 0)" }
+"i morges" = { "i morges" = "ago(day, 0)" }
+"i kveld" = { "i kveld" = "ago(day, 0)" }
+"i går kveld" = { "i går kveld" = "ago(day, 1)" }
+"igårkveld" = { "igårkveld" = "ago(day, 1)" }
+
+[last]
+"siste uke" = { "siste uke" = "last(week, 1)" }
+"den siste uken" = { "den siste uken" = "last(week, 1)" }
+"de siste 3 månedene" = { "de siste 3 månedene" = "last(month, 3)" }
+"siste ti dager" = { "siste ti dager" = "last(day, 10)" }
+"det siste året" = { "det siste året" = "last(year, 1)" }
+
+[weeks]
+"uke 32" = { "uke 32" = "week(32)" }
+"ferie i uke 28" = { "i uke 28" = "week(28)" }
+"uke 32 i fjor" = { "uke 32 i fjor" = "week(32) from ago(year, 1)" }
+
+[weekends]
+"bilder fra helgen" = { "fra helgen" = "weekday(sat..sun) from back(0)" }
+"i helga" = { "i helga" = "weekday(sat..sun) from back(0)" }
+"denne helgen" = { "denne helgen" = "weekday(sat..sun) from back(0)" }
+"forrige helg" = { "forrige helg" = "weekday(sat..sun) from back(1)" }
+"helga i fjor" = { "helga i fjor" = "weekday(sat..sun) from ago(year, 1)" }
+
+[short_years]
+"sommer 23" = { "sommer 23" = "month(6..8) from year(2023)" }
+"jul -19" = { "jul -19" = "date(12-24..12-26) from year(2019)" }
+"sommeren '95" = { "sommeren '95" = "month(6..8) from year(1995)" }
+"i mai 23" = { "i mai 23" = "month(5) from year(2023)" }
+"mai 23" = { "mai 23" = "month(5) from year(2023)" }
+"17. mai 23" = { "17. mai 23" = "date(05-17) from year(2023)" }
+
+[years]
+"2024" = { "2024" = "year(2024)" }
+"bilder fra 2019" = { "fra 2019" = "year(2019)" }
+
+[seasons]
+"høsten" = { "høsten" = "month(9..11)" }
+"bilder fra sommeren" = { "fra sommeren" = "month(6..8)" }
+"våren" = { "våren" = "month(3..5)" }
+
+[weekdays]
+"på fredag" = { "på fredag" = "weekday(fri)" }
+"lørdag forrige uke" = { "lørdag forrige uke" = "weekday(sat) from ago(week, 1)" }
+
+[latest]
+"strand i sommer" = { "i sommer" = "month(6..8) from back(0)" }
+"ski i vinter" = { "i vinter" = "month(12..2) from back(0)" }
+"i høst" = { "i høst" = "month(9..11) from back(0)" }
+"i vår" = { "i vår" = "month(3..5) from back(0)" }
+"ivår" = { "ivår" = "month(3..5) from back(0)" }
+"i jula" = { "i jula" = "date(12-24..12-26) from back(0)" }
+"i påsken" = { "i påsken" = "easter(-7..1) from back(0)" }
+"i sommer 2024" = { "i sommer 2024" = "month(6..8) from year(2024)" }
+"denne sommeren" = { "denne sommeren" = "month(6..8) from back(0)" }
+"forrige sommer" = { "forrige sommer" = "month(6..8) from back(1)" }
+"sist jul" = { "sist jul" = "date(12-24..12-26) from back(1)" }
+"bilder fra forrige påske" = { "fra forrige påske" = "easter(-7..1) from back(1)" }
+"forrige fredag" = { "forrige fredag" = "weekday(fri) from back(1)" }
+"forrige mai" = { "forrige mai" = "month(5) from back(1)" }
+
+[combinations]
+"mai i fjor" = { "mai i fjor" = "month(5) from ago(year, 1)" }
+"i fjor mai" = { "i fjor mai" = "month(5) from ago(year, 1)" }
+"bilder i mai i fjor" = { "i mai i fjor" = "month(5) from ago(year, 1)" }
+"i fjor sommer" = { "i fjor sommer" = "month(6..8) from ago(year, 1)" }
+"sommeren i fjor" = { "sommeren i fjor" = "month(6..8) from ago(year, 1)" }
+"sommer 2024" = { "sommer 2024" = "month(6..8) from year(2024)" }
+"sommeren 2024" = { "sommeren 2024" = "month(6..8) from year(2024)" }
+"mai 2020" = { "mai 2020" = "month(5) from year(2020)" }
+"i mai 2020" = { "i mai 2020" = "month(5) from year(2020)" }
+"desember, 2019" = { "desember, 2019" = "month(12) from year(2019)" }
+
+[dates]
+"17. mai" = { "17. mai" = "date(05-17)" }
+"17. mai 2020" = { "17. mai 2020" = "date(05-17) from year(2020)" }
+"17.05.2020" = { "17.05.2020" = "date(05-17) from year(2020)" }
+"14.07.23" = { "14.07.23" = "date(07-14) from year(2023)" }
+"2023-07-14" = { "2023-07-14" = "date(07-14) from year(2023)" }
+"bursdag 3. juni" = { "3. juni" = "date(06-03)" }
+"3. forrige måned" = { "3. forrige måned" = "day(3) from ago(month, 1)" }
+
+[holidays]
+"julaften" = { "julaften" = "date(12-24)" }
+"julaften i fjor" = { "julaften i fjor" = "date(12-24) from ago(year, 1)" }
+"jula 2019" = { "jula 2019" = "date(12-24..12-26) from year(2019)" }
+"påske 2019" = { "påske 2019" = "easter(-7..1) from year(2019)" }
+"nyttårsaften" = { "nyttårsaften" = "date(12-31)" }
+"nyttår" = { "nyttår" = "date(12-31..01-01)" }
+"nyttåret 2020" = { "nyttåret 2020" = "date(12-31..01-01) from year(2020)" }
+"sankthans" = { "sankthans" = "date(06-23)" }
+"st. hans 2021" = { "st. hans 2021" = "date(06-23) from year(2021)" }
+"1. juledag" = { "1. juledag" = "date(12-25)" }
+"andre juledag i fjor" = { "andre juledag i fjor" = "date(12-26) from ago(year, 1)" }
+"nyttårsdag" = { "nyttårsdag" = "date(01-01)" }
+"1. mai" = { "1. mai" = "date(05-01)" }
+"arbeidernes dag" = { "arbeidernes dag" = "date(05-01)" }
+"valentinsdag" = { "valentinsdag" = "date(02-14)" }
+"lucia 2023" = { "lucia 2023" = "date(12-13) from year(2023)" }
+"luciatog på lucia" = { "på lucia" = "date(12-13)" }
+"rundt mai" = { "rundt mai" = "month(5)" }
+"palmesøndag" = { "palmesøndag" = "easter(-7)" }
+"skjærtorsdag" = { "skjærtorsdag" = "easter(-3)" }
+"påskeaften" = { "påskeaften" = "easter(-1)" }
+"2. påskedag" = { "2. påskedag" = "easter(1)" }
+"kristi himmelfartsdag" = { "kristi himmelfartsdag" = "easter(39)" }
+"andre pinsedag 2022" = { "andre pinsedag 2022" = "easter(50) from year(2022)" }
+"adventstiden 2020" = { "adventstiden 2020" = "date(11-27..12-24) from year(2020)" }
+"halloween 2022" = { "halloween 2022" = "date(10-31) from year(2022)" }
+
+[holiday_periods]
+"romjula" = { "romjula" = "date(12-27..12-31)" }
+"juleferien 2019" = { "juleferien 2019" = "date(12-20..01-03) from year(2019)" }
+"ski i vinterferien" = { "i vinterferien" = "week(8..9)" }
+"høstferie i fjor" = { "høstferie i fjor" = "week(40..41) from ago(year, 1)" }
+"fellesferien 2023" = { "fellesferien 2023" = "week(27..31) from year(2023)" }
+"bilder fra sommerferien" = { "fra sommerferien" = "date(06-15..08-25)" }
+"forrige sommerferie" = { "forrige sommerferie" = "date(06-15..08-25) from back(1)" }
+
+[upper_case]
+"bilder fra I FJOR" = { "fra I FJOR" = "ago(year, 1)" }
+
+[multiple]
+"jul 2019 og påske 2020" = { "jul 2019" = "date(12-24..12-26) from year(2019)", "påske 2020" = "easter(-7..1) from year(2020)" }
+
+[joined]
+"bilder ifjor" = { "ifjor" = "ago(year, 1)" }
+"ifjor sommer" = { "ifjor sommer" = "month(6..8) from ago(year, 1)" }
+"mai iforfjor" = { "mai iforfjor" = "month(5) from ago(year, 2)" }
+"iår" = { "iår" = "ago(year, 0)" }
+"igår" = { "igår" = "ago(day, 1)" }
+"idag" = { "idag" = "ago(day, 0)" }
+"isommer" = { "isommer" = "month(6..8) from back(0)" }
+"ijula" = { "ijula" = "date(12-24..12-26) from back(0)" }
+
+[realistic]
+"bilder av barna på stranden i sommerferien 2021" = { "i sommerferien 2021" = "date(06-15..08-25) from year(2021)" }
+"hytta i påska" = { "i påska" = "easter(-7..1) from back(0)" }
+"hytta i påsken 2019" = { "i påsken 2019" = "easter(-7..1) from year(2019)" }
+"snø i februar for to år siden" = { "i februar for to år siden" = "month(2) from ago(year, 2)" }
+"middag med familien på julaften" = { "på julaften" = "date(12-24)" }
+"17. mai-tog i fjor" = { "17. mai" = "date(05-17)", "i fjor" = "ago(year, 1)" }
+"17. mai-feiring" = { "17. mai" = "date(05-17)" }
+"bursdag forrige år" = { "forrige år" = "ago(year, 1)" }
+"denne måneden" = { "denne måneden" = "ago(month, 0)" }
+"ferie i august" = { "i august" = "month(8)" }
+"jan 2020" = { "jan 2020" = "month(1) from year(2020)" }
+"luciadagen" = { "luciadagen" = "date(12-13)" }
+
+[punctuation]
+"bilder fra i fjor!" = { "fra i fjor" = "ago(year, 1)" }
+"(sommer 2019)" = { "sommer 2019" = "month(6..8) from year(2019)" }
+"jul, 2018" = { "jul, 2018" = "date(12-24..12-26) from year(2018)" }
+"JULAFTEN" = { "JULAFTEN" = "date(12-24)" }
+
+[separate]
+"bilder fra mai og juni" = { "fra mai" = "month(5)", "juni" = "month(6)" }
+"2019 og 2020" = { "2019" = "year(2019)", "2020" = "year(2020)" }
+"jul og nyttår" = { "jul" = "date(12-24..12-26)", "nyttår" = "date(12-31..01-01)" }
+"i fjor 2019" = { "i fjor" = "ago(year, 1)", "2019" = "year(2019)" }
+
+[nothing]
+"bilder av katter" = {}
+"bilder av hjul" = {}
+"Mai sin bursdag" = {}
+"topp 3. plass" = {}
+"bilder fra 3. klasse" = {}
+"på 1. plass" = {}
+"3. i fjor" = {}
+"3. 2020" = {}
+"forrige gang" = {}
+"dette bildet" = {}
+"bilder av vår hund" = {}
+"" = {}
+"1800" = {}
+"2200" = {}
+"12345" = {}
+"32. mai" = {}
+"3 år gammel" = {}
+"dagen" = {}
+"for lenge siden" = {}
+"bilder av Jan" = {}
+"Lucia sin bursdag" = {}
+"de siste dagene" = {}
+"uke 60" = {}
+"hund 23" = {}
+"bilder fra 23" = {}
+"løp på 10 km" = {}
+"ferdig i 20 minutter" = {}
+"katt på 12 kilo" = {}
+"covid-19" = {}
+"31.02.2020" = {}
+
+[hyphens]
+"jul-19" = { "jul-19" = "date(12-24..12-26) from year(2019)" }
+
+# Ranges are not supported yet. These record what happens today.
+[ranges]
+"2018-2020" = { "2018" = "year(2018)", "2020" = "year(2020)" }
+"mai-juni" = { "juni" = "month(6)" }
+"2010-tallet" = { "2010" = "year(2010)" }
+"vinteren 2020/2021" = { "vinteren 2020" = "month(12..2) from year(2020)", "2021" = "year(2021)" }
