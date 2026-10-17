@@ -10,7 +10,6 @@ keywords = ["date", "natural-language", "search", "parser", "time"]
 categories = ["date-and-time", "parser-implementations", "text-processing"]
 
 [dependencies]
-indexmap = { version = "2.14.2", features = ["serde"] }
 jiff = { version = "0.2.38", default-features = false, features = [
     "std",
     "tz-system",
@@ -18,5 +17,9 @@ jiff = { version = "0.2.38", default-features = false, features = [
     "tzdb-bundle-platform",
     "tzdb-concatenated",
 ] }
-serde = { version = "1", features = ["derive"] }
-toml = "1.1.8"
+toml = { version = "1.1.8", default-features = false, features = [
+    "std",
+    "parse",
+    "serde",
+    "preserve_order",
+] }

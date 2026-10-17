@@ -5,9 +5,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::LazyLock;
 
-use indexmap::IndexMap;
-use serde::Deserialize;
-
 use crate::clause::{Clause, ParseClauseError, Unit, Weekday};
 use crate::parsed::UnsupportedLocale;
 use crate::tokenize::{Token, tokenize};
@@ -61,16 +58,14 @@ enum Slot {
 
 /// The language file, as written. Tables keep their order, so later phrases
 /// win ties the same way every time.
-#[derive(Default, Deserialize)]
-#[serde(default)]
 struct File {
     week_start: Option<String>,
     prepositions: Vec<String>,
     joiners: Vec<String>,
-    numbers: IndexMap<String, u32>,
-    units: IndexMap<String, String>,
-    phrases: IndexMap<String, String>,
-    partial: IndexMap<String, String>,
+    numbers: Vec<(String, u32)>,
+    units: Vec<(String, String)>,
+    phrases: Vec<(String, String)>,
+    partial: Vec<(String, String)>,
 }
 
 /// A mistake in a language file, from [`Language::from_toml`] or
@@ -166,7 +161,7 @@ impl Language {
     /// # Ok::<(), whenabouts::LanguageError>(())
     /// ```
     pub fn extend(&self, source: &str) -> Result<Language, LanguageError> {
-        let file = toml::from_str(source).map_err(|error| LanguageError::new(error.to_string()))?;
+        let file = File::read(source)?;
         let mut language = self.clone();
         language.add(file)?;
         Ok(language)
@@ -238,6 +233,77 @@ impl Language {
         }
         Ok(())
     }
+}
+
+impl File {
+    /// Reads the file. Sections it doesn't know are left alone.
+    fn read(source: &str) -> Result<File, LanguageError> {
+        let table: toml::Table = source
+            .parse()
+            .map_err(|error: toml::de::Error| LanguageError::new(error.to_string()))?;
+        let text = |value: &toml::Value| value.as_str().map(str::to_string);
+        let count = |value: &toml::Value| value.as_integer().and_then(|n| u32::try_from(n).ok());
+        Ok(File {
+            week_start: table
+                .get("week_start")
+                .map(|value| text(value).ok_or_else(|| wrong_type("week_start", "a string", value)))
+                .transpose()?,
+            prepositions: list(&table, "prepositions")?,
+            joiners: list(&table, "joiners")?,
+            numbers: section(&table, "numbers", "a whole number", count)?,
+            units: section(&table, "units", "a string", text)?,
+            phrases: section(&table, "phrases", "a string", text)?,
+            partial: section(&table, "partial", "a string", text)?,
+        })
+    }
+}
+
+/// A list of strings, or an empty one if it's left out.
+fn list(table: &toml::Table, key: &str) -> Result<Vec<String>, LanguageError> {
+    let Some(value) = table.get(key) else {
+        return Ok(Vec::new());
+    };
+    let items = value
+        .as_array()
+        .ok_or_else(|| wrong_type(key, "a list", value))?;
+    items
+        .iter()
+        .map(|item| {
+            item.as_str()
+                .map(str::to_string)
+                .ok_or_else(|| wrong_type(key, "a list of strings", item))
+        })
+        .collect()
+}
+
+/// The entries of a table, in order, or none if it's left out.
+fn section<T>(
+    table: &toml::Table,
+    key: &str,
+    expected: &str,
+    read: impl Fn(&toml::Value) -> Option<T>,
+) -> Result<Vec<(String, T)>, LanguageError> {
+    let Some(value) = table.get(key) else {
+        return Ok(Vec::new());
+    };
+    let entries = value
+        .as_table()
+        .ok_or_else(|| wrong_type(key, "a table", value))?;
+    entries
+        .iter()
+        .map(|(name, value)| {
+            let read = read(value)
+                .ok_or_else(|| wrong_type(&format!("{key} {name:?}"), expected, value))?;
+            Ok((name.clone(), read))
+        })
+        .collect()
+}
+
+fn wrong_type(key: &str, expected: &str, value: &toml::Value) -> LanguageError {
+    LanguageError::new(format!(
+        "{key}: expected {expected}, found {}",
+        value.type_str()
+    ))
 }
 
 /// Reads a language file that comes with the library. Mistakes in it are bugs,
@@ -505,6 +571,19 @@ mod tests {
                 "[units]\n\"tiår\" = \"decade\"",
                 "unit \"tiår\": unknown unit \"decade\"",
             ),
+            (
+                "[phrases]\n\"jul\" = 5",
+                "phrases \"jul\": expected a string, found integer",
+            ),
+            (
+                "[numbers]\n\"en\" = -1",
+                "numbers \"en\": expected a whole number, found integer",
+            ),
+            (
+                "prepositions = \"i\"",
+                "prepositions: expected a list, found string",
+            ),
+            ("phrases = 3", "phrases: expected a table, found integer"),
         ] {
             let error = Language::from_toml(source).unwrap_err().to_string();
             assert!(error.contains(message), "{source:?}: {error}");
