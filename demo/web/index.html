@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whenabouts</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f6f3; --card: #fff; --fg: #1f1d1a; --muted: #8a857d; --line: #e8e5df; --cell: #f1efea;
+    --c0: #3b6cf6; --c1: #e0457b; --c2: #1f9d6b; --c3: #e8833a;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141312; --card: #1d1c1a; --fg: #eeece8; --muted: #8f8a82; --line: #2e2c29; --cell: #262421;
+      --c0: #6f95ff; --c1: #f06e9c; --c2: #3cc48f; --c3: #f5a05e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; display: grid; gap: 16px; }
+  button, input { font: inherit; color: inherit; }
+
+  /* Header */
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
+  .intro { flex: 1 1 320px; }
+  h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  h1 span { color: var(--muted); font-weight: 400; }
+  .tagline { margin: 2px 0 10px; color: var(--muted); font-size: 14px; max-width: 440px; }
+  .links { display: flex; gap: 8px; }
+  .links a { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; color: var(--fg); text-decoration: none; background: var(--card); }
+  .links a:hover { border-color: var(--muted); }
+  .links svg { width: 14px; height: 14px; }
+  .settings { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; }
+  .settings input { border: 0; background: none; color: var(--muted); padding: 0; }
+  .toggle { display: flex; background: var(--cell); border-radius: 8px; padding: 2px; }
+  .toggle button { border: 0; background: none; padding: 2px 10px; border-radius: 6px; cursor: pointer; color: var(--muted); font-size: 13px; }
+  .toggle button.on { background: var(--card); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+
+  /* Search: the query is drawn again behind the transparent input, showing only the marks. */
+  .search { padding: 10px; }
+  .field { position: relative; cursor: text; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; transition: border-color 0.15s, box-shadow 0.15s; }
+  .field:hover { border-color: var(--muted); }
+  .field:focus-within { border-color: var(--c0); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c0) 20%, transparent); }
+  .field svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  #query, #backdrop { font-size: 20px; line-height: 28px; padding: 10px 14px 10px 42px; }
+  #query { position: relative; width: 100%; border: 0; background: none; outline: none; }
+  #backdrop { position: absolute; inset: 0; overflow: hidden; white-space: pre; color: transparent; pointer-events: none; }
+  #backdrop mark { color: transparent; border-radius: 4px; padding: 2px 0; }
+  #examples { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 10px 4px 2px; }
+  #examples::before { content: "Try:"; color: var(--muted); font-size: 13px; }
+  #examples button { border: 0; background: none; padding: 0; cursor: pointer; color: var(--muted); font-size: 13px; }
+  #examples button:hover { color: var(--fg); }
+
+  /* Matches */
+  #phrases { padding: 18px 20px; display: grid; gap: 12px; }
+  .empty { color: var(--muted); }
+  .phrase { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .chip { border-radius: 6px; padding: 2px 8px; }
+  .phrase code { flex-basis: 100%; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* Calendar: one row per year, a column per week */
+  .calendar { padding: 18px 20px 22px; overflow-x: auto; }
+  #years { display: grid; gap: 14px; min-width: 640px; }
+  .row { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; }
+  .row > span { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .months, .days { display: grid; grid-template-columns: repeat(54, 1fr); gap: 3px; }
+  .months { font-size: 11px; color: var(--muted); margin-bottom: -6px; white-space: nowrap; }
+  .days { grid-template-rows: repeat(7, auto); grid-auto-flow: column; }
+  .days i { aspect-ratio: 1; border-radius: 2px; background: var(--cell); }
+  .days i.blank { background: none; }
+  .days i.today { position: relative; z-index: 1; transform: scale(1.3); border-radius: 3px; outline: 2px solid var(--fg); outline-offset: 1.5px; }
+  .days i.today:not([style]) { background: var(--fg); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="intro">
+      <h1>whenabouts <span>live demo</span></h1>
+      <p class="tagline">A Rust crate that finds time expressions in search queries and turns them into date ranges.</p>
+      <nav class="links">
+        <a href="https://github.com/evgiz/whenabouts">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3"/></svg>
+          GitHub
+        </a>
+        <a href="https://crates.io/crates/whenabouts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="m7.5 4.27 9 5.15"/></svg>
+          crates.io
+        </a>
+      </nav>
+    </div>
+    <div class="settings">
+      <div class="toggle" id="locale">
+        <button data-locale="en" class="on">EN</button>
+        <button data-locale="nb">NB</button>
+      </div>
+      <label>today <input id="today" type="date"></label>
+    </div>
+  </header>
+
+  <div class="card search">
+    <div class="field">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <div id="backdrop" aria-hidden="true"></div>
+      <input id="query" autocomplete="off" spellcheck="false" placeholder="Type a search query…" aria-label="Search query">
+    </div>
+    <div id="examples"></div>
+  </div>
+
+  <div class="card" id="phrases"></div>
+
+  <div class="card calendar">
+    <div id="years"></div>
+  </div>
+</main>
+
+<script type="module">
+const EXAMPLES = {
+  en: [
+    "beach photos from last summer",
+    "presents on christmas 2 years ago",
+    "receipts from the last 3 months",
+    "sunset pictures on weekends in july",
+    "ski trip in february last year",
+    "fireworks on new year's eve 2024",
+    "hiking on easter weekend",
+  ],
+  nb: [
+    "bilder fra hytta i påsken i fjor",
+    "juleaften for 2 år siden",
+    "kvitteringer fra de siste 3 månedene",
+    "solnedgang i sommerferien 2024",
+    "skitur i vinterferien",
+    "17. mai i fjor",
+    "fotball i helgen",
+  ],
+};
+const YEARS = 5;
+const COLORS = ["--c0", "--c1", "--c2", "--c3"].map(name => `var(${name})`);
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DATES = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+
+const { instance } = await WebAssembly.instantiateStreaming(fetch("whenabouts_demo.wasm"));
+const wasm = instance.exports;
+
+/** Calls into the crate: see demo/src/lib.rs. */
+function parse(locale, query, today, firstYear, lastYear) {
+  const input = new TextEncoder().encode(`${locale}\n${query}`);
+  const ptr = wasm.alloc(input.length);
+  new Uint8Array(wasm.memory.buffer, ptr, input.length).set(input);
+  const [y, m, d] = today.split("-").map(Number);
+  const len = wasm.parse(ptr, input.length, y, m, d, firstYear, lastYear);
+  wasm.dealloc(ptr, input.length);
+  return JSON.parse(new TextDecoder().decode(new Uint8Array(wasm.memory.buffer, wasm.output(), len)));
+}
+
+const $ = id => document.getElementById(id);
+const escape = text => text.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const iso = date => date.toISOString().slice(0, 10);
+const utc = text => new Date(text + "T00:00Z");
+/** "1–31 May 2026", or "17 May 2026" for a single day. */
+const range = ([first, last]) => DATES.formatRange(utc(first), utc(last));
+const color = i => COLORS[i % COLORS.length];
+/** The tinted background and underline of the `i`th phrase. */
+const highlight = i => `background:color-mix(in srgb, ${color(i)} 18%, transparent);box-shadow:inset 0 -2px ${color(i)}`;
+
+let locale = "en";
+
+function update() {
+  const query = $("query").value;
+  const today = $("today").value;
+  if (!today) return;
+  const lastYear = Number(today.slice(0, 4));
+  const { error, phrases } = parse(locale, query, today, lastYear - YEARS + 1, lastYear);
+  renderMarks(query, phrases);
+  renderPhrases(error, phrases);
+  renderYears(phrases, today, lastYear);
+}
+
+function renderMarks(query, phrases) {
+  let html = "", from = 0;
+  phrases.forEach((p, i) => {
+    html += escape(query.slice(from, p.start));
+    html += `<mark style="${highlight(i)}">${escape(query.slice(p.start, p.end))}</mark>`;
+    from = p.end;
+  });
+  $("backdrop").innerHTML = html + escape(query.slice(from));
+  syncScroll();
+}
+
+function renderPhrases(error, phrases) {
+  const meaning = p => p.bounds ? range(p.bounds)
+    : p.latest ? `repeats · latest ${range(p.latest)}`
+    : "repeats";
+  $("phrases").innerHTML = error ? `<span class="empty">${escape(error)}</span>`
+    : !phrases.length ? `<span class="empty">No time expressions found.</span>`
+    : phrases.map((p, i) => `
+      <div class="phrase">
+        <span class="chip" style="${highlight(i)}">${escape(p.text)}</span>
+        <span>${meaning(p)}</span>
+        <code>${escape(p.clause)}</code>
+      </div>`).join("");
+}
+
+function renderYears(phrases, today, lastYear) {
+  // The color of each matching day, by the first phrase that matches it.
+  const colors = {};
+  phrases.forEach((p, i) => {
+    for (const [first, last] of p.ranges) {
+      for (const day = utc(first); iso(day) <= last; day.setUTCDate(day.getUTCDate() + 1)) {
+        colors[iso(day)] ??= color(i);
+      }
+    }
+  });
+
+  let html = "";
+  for (let year = lastYear; year > lastYear - YEARS; year--) {
+    const day = new Date(Date.UTC(year, 0, 1));
+    let index = (day.getUTCDay() + 6) % 7; // Monday first
+    let months = "", days = `<i class="blank"></i>`.repeat(index);
+    for (; day.getUTCFullYear() === year; day.setUTCDate(day.getUTCDate() + 1), index++) {
+      const key = iso(day);
+      if (day.getUTCDate() === 1) {
+        months += `<span style="grid-column:${Math.floor(index / 7) + 1}">${MONTHS[day.getUTCMonth()]}</span>`;
+      }
+      const style = colors[key] ? ` style="background:${colors[key]}"` : "";
+      days += `<i title="${key}"${key === today ? ` class="today"` : ""}${style}></i>`;
+    }
+    // Month names once, above the newest year.
+    if (year === lastYear) html += `<div class="row"><span></span><div class="months">${months}</div></div>`;
+    html += `<div class="row"><span>${year}</span><div class="days">${days}</div></div>`;
+  }
+  $("years").innerHTML = html;
+}
+
+/** Keeps the marks under the text when a long query scrolls sideways. */
+function syncScroll() {
+  $("backdrop").scrollLeft = $("query").scrollLeft;
+}
+
+function setLocale(next) {
+  locale = next;
+  for (const button of $("locale").children) button.classList.toggle("on", button.dataset.locale === locale);
+  $("examples").replaceChildren(...EXAMPLES[locale].map(text => {
+    const button = document.createElement("button");
+    button.textContent = text;
+    button.onclick = () => { $("query").value = text; update(); };
+    return button;
+  }));
+  $("query").value = EXAMPLES[locale][0];
+  update();
+}
+
+const now = new Date();
+$("today").value = iso(new Date(now.getTime() - now.getTimezoneOffset() * 60000));
+$("query").addEventListener("input", update);
+for (const event of ["scroll", "keyup", "click"]) $("query").addEventListener(event, syncScroll);
+$("today").addEventListener("input", update);
+$("locale").addEventListener("click", event => {
+  if (event.target.dataset.locale) setLocale(event.target.dataset.locale);
+});
+setLocale("en");
+$("query").focus();
+</script>
+</body>
+</html>

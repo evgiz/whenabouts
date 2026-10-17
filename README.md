@@ -4,6 +4,8 @@ Fast natural-language date period extraction for search queries.
 
 Automatically detect phrases such as "last week", "summer of 2023" or "christmas 2 years ago" and convert them into clauses or date ranges. Fast and easily extensible.
 
+[Try the live demo](https://evgiz.github.io/whenabouts/).
+
 ## Usage
 
 It is simple to check whether a date is included in the query or to extract the semantic part of the query:
