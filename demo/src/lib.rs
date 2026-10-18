@@ -107,7 +107,7 @@ fn run(
         Err(e) => return error(&e.to_string()),
     };
 
-    let parsed = language.parse(query);
+    let parsed = language.parse_as_of(query, today);
     let utf16 = |bytes: usize| query[..bytes].encode_utf16().count();
     let pair = |range: std::ops::RangeInclusive<Date>| {
         [range.start().to_string(), range.end().to_string()]
