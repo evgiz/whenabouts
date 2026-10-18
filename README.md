@@ -1,25 +1,34 @@
 # Whenabouts
 
-Fast natural-language date period extraction for search queries.
+Fast natural-language date parser for search queries.
 
-Automatically detect phrases such as "last week", "summer of 2023" or "christmas 2 years ago" and convert them into clauses or date ranges. Fast and easily extensible.
+Automatically detect phrases such as "last week" or "summer of 2023" and convert them into clauses or date ranges.
+Fast and easily extensible. Written in Rust.
 
-[Try the live demo](https://evgiz.github.io/whenabouts/).
+### [Try the live demo](https://evgiz.github.io/whenabouts/).
 
-## Usage
+[Crate on crates.io](https://crates.io/crates/whenabouts) - [Docs on docs.rs](https://docs.rs/whenabouts)
 
-It is simple to check whether a date is included in the query or to extract the semantic part of the query:
+## Installation
+
+```sh
+cargo add whenabouts
+```
+
+## Basic usage
+
+It is simple to check whether a date is included in a query and extract the semantic part of the text:
 
 ```rust
 
-use whenabouts::Date;
-let day_in_may = Date::new(2026, 5, 23).unwrap();
+use whenabouts::date;
 
 // Parse a natural language query
 let query = "pictures of cats in may";
-let parsed = whenabouts::parse(query, "en").unwrap();
+let parsed = whenabouts::parse(query);
 
 // Assert a date in may is included
+let day_in_may = date(2026, 5, 23);
 assert!(parsed.contains(day_in_may));
 
 // Get the remaining semantic part of the query
@@ -29,38 +38,37 @@ assert_eq!(parsed.rest(), "pictures of cats");
 
 ## Filtering using date ranges
 
-A typical use case is to filter results e.g. in a database query.
-To do this we must extract date range occurrences from the parsed result.
+A typical use case is to filter results by time, e.g. in a database query.
 
-Specific queries, such as "january 2023", only match a single range, while some phrases like "weekend" repeat indefinitely. To avoid dealing with a potentially huge number of date ranges, use the lazy helpers to limit which ones you consider:
+Specific queries, such as "january 2023", only match a single date range. Other phrases, like "in winter" or "on a weekend", repeat indefinitely. To avoid dealing with very large number of date ranges, use the lazy iterator helpers to limit which ones to consider:
 
-- `backward()`: ranges up to and including today, latest first
-- `forward()`: ranges from today on, earliest first
-- `between(first, last)`: ranges between two dates, earliest first
+- `backward()`: iterate ranges backward in time from today
+- `forward()`: iterate ranges forward in time from today
+- `between(first, last)`: iterate ranges between two dates, earliest first
+
+All are inclusive. Forward/backward only returns ranges between years 1900-2100, but for certain queries this can still return thousands of date ranges. Make sure to consider this in your filtering logic.
 
 Example:
 
 ```rust
 
-use whenabouts::{Date, DateRanges};
+use whenabouts::{RangeSet, date};
 
 // The reference point for today
-let date = |y, m, d| Date::new(y, m, d).unwrap();
 let today = date(2026, 10, 15);
 
-// Parse the natural language query
+// Parse a natural language query
 let query = "hiking photos from october";
-let parsed = whenabouts::parse(query, "en").unwrap();
-let octobers = parsed.occurrences_as_of(today);
+let parsed = whenabouts::parse_as_of(query, today);
 
 // Get the 3 latest octobers (including the current one)
-let latest: Vec<_> = octobers.backward().take(3).collect();
+let latest: Vec<_> = parsed.backward().take(3).collect();
 assert_eq!(latest[0], date(2026, 10, 1)..=date(2026, 10, 15)); // Cut at today
 assert_eq!(latest[1], date(2025, 10, 1)..=date(2025, 10, 31));
 assert_eq!(latest[2], date(2024, 10, 1)..=date(2024, 10, 31));
 
 // Or every october since 2020
-let since_2020: DateRanges = octobers.between(date(2020, 1, 1), today).collect();
+let since_2020: RangeSet = parsed.between(date(2020, 1, 1), today).collect();
 assert_eq!(since_2020.ranges().len(), 7);
 
 ```

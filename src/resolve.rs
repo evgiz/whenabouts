@@ -10,16 +10,16 @@ use crate::clause::{Anchor, Clause, MonthDay, Part, Unit};
 use crate::date::{self, Date};
 
 /// Date ranges, sorted and merged, to check many dates quickly. Collect them
-/// from [`Occurrences`].
+/// from [`Ranges`] or [`Parsed`](crate::Parsed), like [`Ranges::between`].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DateRanges {
+pub struct RangeSet {
     /// Sorted, and neither overlapping nor touching.
     ranges: Vec<RangeInclusive<Date>>,
 }
 
-impl DateRanges {
+impl RangeSet {
     /// Sorts the ranges and merges the ones that overlap or touch.
-    pub(crate) fn new(mut ranges: Vec<RangeInclusive<Date>>) -> DateRanges {
+    pub(crate) fn new(mut ranges: Vec<RangeInclusive<Date>>) -> RangeSet {
         ranges.sort_by_key(|range| *range.start());
         let mut merged: Vec<RangeInclusive<Date>> = Vec::with_capacity(ranges.len());
         for range in ranges {
@@ -30,7 +30,7 @@ impl DateRanges {
                 _ => merged.push(range),
             }
         }
-        DateRanges { ranges: merged }
+        RangeSet { ranges: merged }
     }
 
     /// Whether `date` is in one of the ranges.
@@ -49,27 +49,27 @@ impl DateRanges {
     }
 }
 
-impl FromIterator<RangeInclusive<Date>> for DateRanges {
-    fn from_iter<I: IntoIterator<Item = RangeInclusive<Date>>>(ranges: I) -> DateRanges {
-        DateRanges::new(ranges.into_iter().collect())
+impl FromIterator<RangeInclusive<Date>> for RangeSet {
+    fn from_iter<I: IntoIterator<Item = RangeInclusive<Date>>>(ranges: I) -> RangeSet {
+        RangeSet::new(ranges.into_iter().collect())
     }
 }
 
-/// The date ranges of one or more clauses, as seen on a given day, from
-/// [`Clause::occurrences`] or [`Parsed::occurrences`](crate::Parsed::occurrences).
+/// The date ranges of a clause, as seen on a given day, from
+/// [`Clause::ranges`]. [`Parsed`](crate::Parsed) has the same methods for all
+/// of its time expressions.
 ///
 /// Every way to get them starts from a date you give, so a clause that repeats
 /// forever, like "May", never starts at the beginning of time. The ranges come
 /// one at a time, and are cut to fit the dates asked for. Ranges of different
-/// clauses may overlap until collected into [`DateRanges`].
+/// clauses may overlap until collected into [`RangeSet`].
 ///
 /// ```
-/// use whenabouts::{Clause, Date, DateRanges};
+/// use whenabouts::{Clause, RangeSet, date};
 ///
-/// let date = |y, m, d| Date::new(y, m, d).unwrap();
 /// let may: Clause = "month(5)".parse().unwrap();
 /// let today = date(2026, 10, 15);
-/// let mays = may.occurrences_as_of(today);
+/// let mays = may.ranges_as_of(today);
 ///
 /// // The latest first.
 /// let latest: Vec<_> = mays.backward().take(2).collect();
@@ -82,56 +82,54 @@ impl FromIterator<RangeInclusive<Date>> for DateRanges {
 /// let next = mays.forward().next();
 /// assert_eq!(next, Some(date(2027, 5, 1)..=date(2027, 5, 31)));
 ///
-/// let since_2020: DateRanges = mays.between(date(2020, 1, 1), today).collect();
+/// let since_2020: RangeSet = mays.between(date(2020, 1, 1), today).collect();
 /// assert!(since_2020.contains(date(2024, 5, 17)));
 /// assert!(!since_2020.contains(date(2019, 5, 17)));
 /// ```
 #[derive(Debug, Clone)]
-pub struct Occurrences<'a> {
+pub struct Ranges<'a> {
     clauses: Vec<&'a Clause>,
     today: Date,
 }
 
-impl<'a> Occurrences<'a> {
-    pub(crate) fn new(clauses: Vec<&'a Clause>, today: Date) -> Occurrences<'a> {
-        Occurrences { clauses, today }
+impl<'a> Ranges<'a> {
+    pub(crate) fn new(clauses: Vec<&'a Clause>, today: Date) -> Ranges<'a> {
+        Ranges { clauses, today }
     }
 
-    /// The ranges up to and including today, latest first. Today is the
-    /// day these occurrences are seen on. See [`Occurrences::backward_from`].
+    /// The ranges up to and including today, latest first, back to 1900.
+    /// Today is the day these ranges are seen on. See [`Ranges::backward_from`].
     ///
     /// ```
-    /// use whenabouts::{Clause, Date};
+    /// use whenabouts::{Clause, date};
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
     /// let october: Clause = "month(10)".parse().unwrap();
     /// let today = date(2026, 10, 15);
     ///
-    /// let latest: Vec<_> = october.occurrences_as_of(today).backward().take(3).collect();
+    /// let latest: Vec<_> = october.ranges_as_of(today).backward().take(3).collect();
     /// assert_eq!(latest, [
     ///     date(2026, 10, 1)..=date(2026, 10, 15), // cut at today
     ///     date(2025, 10, 1)..=date(2025, 10, 31),
     ///     date(2024, 10, 1)..=date(2024, 10, 31),
     /// ]);
     /// ```
-    pub fn backward(&self) -> impl Iterator<Item = RangeInclusive<Date>> + 'a {
+    pub fn backward(&self) -> impl Iterator<Item = RangeInclusive<Date>> + use<'a> {
         self.backward_from(self.today)
     }
 
-    /// The ranges up to and including `date`, latest first. One under way is
-    /// cut at `date`; to leave it out, keep the ranges with
+    /// The ranges up to and including `date`, latest first, back to 1900. One
+    /// under way is cut at `date`; to leave it out, keep the ranges with
     /// `*range.end() < date`. Cheap to take a few of, even for a clause that
     /// repeats forever.
     ///
     /// ```
-    /// use whenabouts::{Clause, Date};
+    /// use whenabouts::{Clause, date};
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
     /// let october: Clause = "month(10)".parse().unwrap();
     /// let today = date(2026, 10, 15);
     ///
     /// let before_2024: Vec<_> = october
-    ///     .occurrences_as_of(today)
+    ///     .ranges_as_of(today)
     ///     .backward_from(date(2023, 12, 31))
     ///     .take(2)
     ///     .collect();
@@ -140,63 +138,64 @@ impl<'a> Occurrences<'a> {
     ///     date(2022, 10, 1)..=date(2022, 10, 31),
     /// ]);
     /// ```
-    pub fn backward_from(&self, date: Date) -> impl Iterator<Item = RangeInclusive<Date>> + 'a {
+    pub fn backward_from(
+        &self,
+        date: Date,
+    ) -> impl Iterator<Item = RangeInclusive<Date>> + use<'a> {
         let order = Order::Nearest(date.to_jiff());
-        self.merge(order, date::to_jiff(..=date), |range| Reverse(*range.end()))
+        self.merge(order, date::to_jiff(date::FIRST..=date), |range| {
+            Reverse(*range.end())
+        })
     }
 
-    /// The ranges from today on, earliest first. Today is the day these
-    /// occurrences are seen on. See [`Occurrences::forward_from`].
+    /// The ranges from today on, earliest first, up to the end of 2100. Today
+    /// is the day these ranges are seen on. See [`Ranges::forward_from`].
     ///
     /// ```
-    /// use whenabouts::{Clause, Date};
+    /// use whenabouts::{Clause, date};
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
     /// let summer: Clause = "month(6..8)".parse().unwrap();
     /// let today = date(2026, 7, 10);
     ///
-    /// let next: Vec<_> = summer.occurrences_as_of(today).forward().take(2).collect();
+    /// let next: Vec<_> = summer.ranges_as_of(today).forward().take(2).collect();
     /// assert_eq!(next, [
     ///     date(2026, 7, 10)..=date(2026, 8, 31), // cut at today
     ///     date(2027, 6, 1)..=date(2027, 8, 31),
     /// ]);
     /// ```
-    pub fn forward(&self) -> impl Iterator<Item = RangeInclusive<Date>> + 'a {
+    pub fn forward(&self) -> impl Iterator<Item = RangeInclusive<Date>> + use<'a> {
         self.forward_from(self.today)
     }
 
-    /// The ranges from `date` on, earliest first. One under way is cut at
-    /// `date`.
+    /// The ranges from `date` on, earliest first, up to the end of 2100. One
+    /// under way is cut at `date`.
     ///
     /// ```
-    /// use whenabouts::{Clause, Date};
+    /// use whenabouts::{Clause, date};
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
     /// let summer: Clause = "month(6..8)".parse().unwrap();
     /// let today = date(2026, 10, 15);
     ///
-    /// let first = summer.occurrences_as_of(today).forward_from(date(2000, 1, 1)).next();
+    /// let first = summer.ranges_as_of(today).forward_from(date(2000, 1, 1)).next();
     /// assert_eq!(first, Some(date(2000, 6, 1)..=date(2000, 8, 31)));
     /// ```
-    pub fn forward_from(&self, date: Date) -> impl Iterator<Item = RangeInclusive<Date>> + 'a {
-        self.merge(Order::Earliest, date::to_jiff(date..), |range| {
+    pub fn forward_from(&self, date: Date) -> impl Iterator<Item = RangeInclusive<Date>> + use<'a> {
+        self.merge(Order::Earliest, date::to_jiff(date..=date::LAST), |range| {
             *range.start()
         })
     }
 
     /// The ranges from `first` to `last`, both included, earliest first.
     /// Ranges that stick out are cut to fit. To check many dates, collect them
-    /// into [`DateRanges`].
+    /// into [`RangeSet`].
     ///
     /// ```
-    /// use whenabouts::{Date, DateRanges};
+    /// use whenabouts::{RangeSet, date};
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
-    /// let parsed = whenabouts::parse("juli og august", "nb").unwrap();
     /// let today = date(2026, 10, 15);
-    /// let occurrences = parsed.occurrences_as_of(today);
+    /// let parsed = whenabouts::parse_as_of("july and august", today);
     ///
-    /// let since_2025: Vec<_> = occurrences.between(date(2025, 1, 1), today).collect();
+    /// let since_2025: Vec<_> = parsed.between(date(2025, 1, 1), today).collect();
     /// assert_eq!(since_2025, [
     ///     date(2025, 7, 1)..=date(2025, 7, 31),
     ///     date(2025, 8, 1)..=date(2025, 8, 31),
@@ -204,26 +203,26 @@ impl<'a> Occurrences<'a> {
     ///     date(2026, 8, 1)..=date(2026, 8, 31),
     /// ]);
     ///
-    /// let this_year: DateRanges = occurrences.between(date(2026, 1, 1), today).collect();
+    /// let this_year: RangeSet = parsed.between(date(2026, 1, 1), today).collect();
     /// assert_eq!(this_year.ranges(), [date(2026, 7, 1)..=date(2026, 8, 31)]);
     /// ```
     pub fn between(
         &self,
         first: Date,
         last: Date,
-    ) -> impl Iterator<Item = RangeInclusive<Date>> + 'a {
+    ) -> impl Iterator<Item = RangeInclusive<Date>> + use<'a> {
         let within = date::to_jiff(first..=last);
         self.merge(Order::Earliest, within, |range| *range.start())
     }
 
     /// The ranges of every clause within `within`, in `order`, merged into one
     /// list sorted by `key`.
-    fn merge<K: Ord + 'a>(
+    fn merge<K: Ord + 'a, F: Fn(&RangeInclusive<Date>) -> K + 'a>(
         &self,
         order: Order,
         within: Range<civil::Date>,
-        key: impl Fn(&RangeInclusive<Date>) -> K + 'a,
-    ) -> impl Iterator<Item = RangeInclusive<Date>> + 'a {
+        key: F,
+    ) -> impl Iterator<Item = RangeInclusive<Date>> + use<'a, K, F> {
         let today = self.today.to_jiff();
         let lists = self
             .clauses
@@ -247,17 +246,17 @@ impl Clause {
     }
 
     /// The date ranges the clause covers, as seen today. See
-    /// [`Clause::occurrences_as_of`] and [`Date::today`].
+    /// [`Clause::ranges_as_of`] and [`Date::today`].
     #[must_use]
-    pub fn occurrences(&self) -> Occurrences<'_> {
-        self.occurrences_as_of(Date::today())
+    pub fn ranges(&self) -> Ranges<'_> {
+        self.ranges_as_of(Date::today())
     }
 
     /// The date ranges the clause covers, as seen on `today`. See
-    /// [`Occurrences`].
+    /// [`Ranges`].
     #[must_use]
-    pub fn occurrences_as_of(&self, today: Date) -> Occurrences<'_> {
-        Occurrences::new(vec![self], today)
+    pub fn ranges_as_of(&self, today: Date) -> Ranges<'_> {
+        Ranges::new(vec![self], today)
     }
 
     /// From the start of the first date range to the end of the last, as seen
@@ -273,9 +272,8 @@ impl Clause {
     /// to narrow a search before checking dates with [`Clause::contains_as_of`].
     ///
     /// ```
-    /// use whenabouts::{Clause, Date};
+    /// use whenabouts::{Clause, date};
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
     /// let today = date(2026, 10, 15);
     /// let weekends: Clause = "weekday(sat..sun) from ago(year, 1)".parse().unwrap();
     /// assert_eq!(weekends.bounds_as_of(today), Some(date(2025, 1, 4)..=date(2025, 12, 28)));
@@ -287,7 +285,7 @@ impl Clause {
     pub fn bounds_as_of(&self, today: Date) -> Option<RangeInclusive<Date>> {
         self.anchor()?;
         let all = date::to_jiff(..);
-        let ranges: DateRanges = self
+        let ranges: RangeSet = self
             .ranges_in(today.to_jiff(), Order::Earliest, all)
             .map(date::from_jiff)
             .collect();
@@ -365,12 +363,11 @@ impl Clause {
     }
 
     /// Whether `date` matches the clause, as seen on `today`. To check many
-    /// dates, collect [`Occurrences::between`] into [`DateRanges`] once instead.
+    /// dates, collect [`Ranges::between`] into [`RangeSet`] once instead.
     ///
     /// ```
-    /// use whenabouts::Date;
+    /// use whenabouts::date;
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
     /// let may_last_year: whenabouts::Clause = "month(5) from ago(year, 1)".parse().unwrap();
     /// let today = date(2026, 10, 15);
     /// assert!(may_last_year.contains_as_of(today, date(2025, 5, 17)));
@@ -617,9 +614,7 @@ fn easter(year: i16) -> civil::Date {
 mod tests {
     use super::*;
 
-    fn date(year: i16, month: u8, day: u8) -> Date {
-        Date::new(year, month, day).unwrap()
-    }
+    use crate::date::date;
 
     #[test]
     fn finds_easter() {
@@ -773,22 +768,20 @@ mod tests {
             "ago(month, 2)",
         ] {
             let parsed: Clause = clause.parse().unwrap();
-            let occurrences = parsed.occurrences_as_of(today);
-            let ranges: Vec<_> = occurrences
-                .between(date(2023, 1, 1), date(2026, 12, 31))
-                .collect();
+            let all = parsed.ranges_as_of(today);
+            let ranges: Vec<_> = all.between(date(2023, 1, 1), date(2026, 12, 31)).collect();
             assert!(
                 ranges
                     .windows(2)
                     .all(|pair| pair[0].end() < pair[1].start()),
                 "{clause}: earliest first"
             );
-            let past: Vec<_> = occurrences.backward().take(4).collect();
+            let past: Vec<_> = all.backward().take(4).collect();
             assert!(
                 past.windows(2).all(|pair| pair[0].start() > pair[1].end()),
                 "{clause}: latest first"
             );
-            let resolved: DateRanges = ranges.into_iter().collect();
+            let resolved: RangeSet = ranges.into_iter().collect();
             let days = civil::date(2023, 1, 1).series(1.day()).take(4 * 365);
             for day in days.map(Date::from_jiff) {
                 let expected = parsed.contains_as_of(today, day);

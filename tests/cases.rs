@@ -6,6 +6,8 @@
 use std::collections::BTreeMap;
 use std::fs;
 
+use whenabouts::{Language, Parsed, UnsupportedLocale};
+
 #[test]
 fn norwegian() {
     run_cases("nb");
@@ -28,12 +30,8 @@ fn run_cases(locale: &str) {
     for (section, cases) in &sections {
         for (query, expected) in cases {
             total += 1;
-            let actual: Detections = whenabouts::parse(query, locale)
-                .unwrap()
-                .phrases()
-                .iter()
-                .map(|phrase| (phrase.text().to_string(), phrase.clause().to_string()))
-                .collect();
+            let language = Language::for_locale(locale).unwrap();
+            let actual = detections(&language.parse(query));
 
             if actual != *expected {
                 failures.push(format!(
@@ -53,6 +51,14 @@ fn run_cases(locale: &str) {
     );
 }
 
+fn detections(parsed: &Parsed) -> Detections {
+    parsed
+        .phrases()
+        .iter()
+        .map(|phrase| (phrase.text().to_string(), phrase.clause().to_string()))
+        .collect()
+}
+
 fn show(detections: &Detections) -> String {
     let items: Vec<_> = detections
         .iter()
@@ -63,26 +69,22 @@ fn show(detections: &Detections) -> String {
 
 #[test]
 fn locales() {
-    let expected = whenabouts::parse("i fjor", "nb").unwrap();
+    let today = whenabouts::date(2026, 10, 15);
+    let parse = |query, locale| -> Result<Parsed, UnsupportedLocale> {
+        Ok(Language::for_locale(locale)?.parse_as_of(query, today))
+    };
+    let expected = parse("i fjor", "nb").unwrap();
     assert_eq!(expected.phrases().len(), 1);
     for locale in ["no", "nb-NO", "nb_NO", "NB"] {
-        assert_eq!(
-            whenabouts::parse("i fjor", locale),
-            Ok(expected.clone()),
-            "{locale}"
-        );
+        assert_eq!(parse("i fjor", locale), Ok(expected.clone()), "{locale}");
     }
-    let expected = whenabouts::parse("last year", "en").unwrap();
+    let expected = parse("last year", "en").unwrap();
     assert_eq!(expected.phrases().len(), 1);
     for locale in ["en-US", "en_GB", "EN"] {
-        assert_eq!(
-            whenabouts::parse("last year", locale),
-            Ok(expected.clone()),
-            "{locale}"
-        );
+        assert_eq!(parse("last year", locale), Ok(expected.clone()), "{locale}");
     }
     for locale in ["xx", ""] {
-        let error = whenabouts::parse("i fjor", locale).unwrap_err();
+        let error = parse("i fjor", locale).unwrap_err();
         assert_eq!(error.locale(), locale);
     }
 }

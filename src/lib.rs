@@ -5,30 +5,30 @@
 //! "Christmas Eve 2019"), not a concrete date range, so checking a date
 //! against it depends on today's date.
 //!
-//! [`parse`] uses a bundled [`Language`]. To add your own phrases to one, or
-//! write a whole language, see [`Language::extend`] and
-//! [`Language::from_toml`].
+//! [`parse`] reads English. For another bundled [`Language`], see
+//! [`Language::for_locale`]. To add your own phrases to one, or write a whole
+//! language, see [`Language::extend`] and [`Language::from_toml`].
 //!
-//! Methods like [`Parsed::contains`] use today in this machine's time zone.
-//! Their `_as_of` versions, like [`Parsed::contains_as_of`], take today's date
-//! instead: for tests, or on a server, where the machine's date may not be the
-//! user's.
+//! [`parse`] sees the query as of today in this machine's time zone.
+//! [`parse_as_of`] takes today's date instead: for tests, or on a server,
+//! where the machine's date may not be the user's.
 //!
 //! ```
-//! use whenabouts::Date;
+//! use whenabouts::{Date, date};
 //!
-//! let parsed = whenabouts::parse("bilder av katter i mai i fjor", "nb")?;
+//! let parsed = whenabouts::parse("pictures of cats in may last year");
 //!
-//! assert_eq!(parsed.phrases()[0].text(), "i mai i fjor");
-//! assert_eq!(parsed.rest(), "bilder av katter");
+//! assert_eq!(parsed.phrases()[0].text(), "in may last year");
+//! assert_eq!(parsed.rest(), "pictures of cats");
 //!
-//! let today = Date::new(2026, 10, 15).unwrap();
-//! assert!(parsed.contains_as_of(today, Date::new(2025, 5, 17).unwrap()));
-//!
-//! // Or as seen today.
-//! let last_may = Date::new(Date::today().year() - 1, 5, 17).unwrap();
+//! // As seen today.
+//! let last_may = date(Date::today().year() - 1, 5, 17);
 //! assert!(parsed.contains(last_may));
-//! # Ok::<(), whenabouts::UnsupportedLocale>(())
+//!
+//! // Or as seen on a given day.
+//! let today = date(2026, 10, 15);
+//! let parsed = whenabouts::parse_as_of("pictures of cats in may last year", today);
+//! assert!(parsed.contains(date(2025, 5, 17)));
 //! ```
 
 mod clause;
@@ -40,10 +40,10 @@ mod resolve;
 mod tokenize;
 
 pub use clause::{Clause, ParseClauseError};
-pub use date::Date;
+pub use date::{Date, date};
 pub use language::{Language, LanguageError};
-pub use parsed::{Parsed, Phrase, UnsupportedLocale, parse};
-pub use resolve::{DateRanges, Occurrences};
+pub use parsed::{Parsed, Phrase, UnsupportedLocale, parse, parse_as_of};
+pub use resolve::{RangeSet, Ranges};
 
 /// Runs the examples in the README as tests.
 #[cfg(doctest)]

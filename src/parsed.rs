@@ -6,27 +6,33 @@ use std::slice;
 use crate::clause::Clause;
 use crate::date::Date;
 use crate::language::Language;
-use crate::resolve::Occurrences;
+use crate::resolve::Ranges;
 
-/// Finds the time expressions in `query`, in the language of `locale`, like
-/// `"nb"`, `"nb-NO"` or `"nb_NO"`. A shortcut for [`Language::for_locale`]
-/// and [`Language::parse`].
+/// Finds the time expressions in `query`, in English, as seen today. See
+/// [`parse_as_of`] and [`Date::today`].
+#[must_use]
+pub fn parse(query: &str) -> Parsed<'_> {
+    parse_as_of(query, Date::today())
+}
+
+/// Finds the time expressions in `query`, in English, as seen on `today`. For
+/// other languages, see [`Language::for_locale`] and [`Language::parse_as_of`].
 ///
 /// ```
-/// let parsed = whenabouts::parse("bilder av katter i mai i fjor", "nb")?;
+/// use whenabouts::date;
 ///
-/// assert_eq!(parsed.rest(), "bilder av katter");
-/// assert_eq!(parsed.phrases()[0].text(), "i mai i fjor");
-///
-/// assert!(whenabouts::parse("cats in May", "xx").is_err());
-/// # Ok::<(), whenabouts::UnsupportedLocale>(())
+/// let parsed = whenabouts::parse_as_of("pictures of cats last may", date(2026, 10, 15));
+/// assert_eq!(parsed.rest(), "pictures of cats");
+/// assert_eq!(parsed.phrases()[0].text(), "last may");
 /// ```
-pub fn parse<'q>(query: &'q str, locale: &str) -> Result<Parsed<'q>, UnsupportedLocale> {
-    Ok(Language::for_locale(locale)?.parse(query))
+#[must_use]
+pub fn parse_as_of(query: &str, today: Date) -> Parsed<'_> {
+    Language::english().parse_as_of(query, today)
 }
 
 impl Language {
-    /// Finds the time expressions in `query`.
+    /// Finds the time expressions in `query`, as seen today. See
+    /// [`Language::parse_as_of`] and [`Date::today`].
     ///
     /// ```
     /// let nb = whenabouts::Language::for_locale("nb")?;
@@ -37,6 +43,21 @@ impl Language {
     /// ```
     #[must_use]
     pub fn parse<'q>(&self, query: &'q str) -> Parsed<'q> {
+        self.parse_as_of(query, Date::today())
+    }
+
+    /// Finds the time expressions in `query`, as seen on `today`.
+    ///
+    /// ```
+    /// use whenabouts::{Language, date};
+    ///
+    /// let nb = Language::for_locale("nb")?;
+    /// let parsed = nb.parse_as_of("katter i fjor", date(2026, 10, 15));
+    /// assert_eq!(parsed.bounds(), Some(date(2025, 1, 1)..=date(2025, 12, 31)));
+    /// # Ok::<(), whenabouts::UnsupportedLocale>(())
+    /// ```
+    #[must_use]
+    pub fn parse_as_of<'q>(&self, query: &'q str, today: Date) -> Parsed<'q> {
         let phrases = self
             .detect(query)
             .into_iter()
@@ -46,12 +67,15 @@ impl Language {
                 clause: detection.clause,
             })
             .collect();
-        Parsed { query, phrases }
+        Parsed {
+            query,
+            phrases,
+            today,
+        }
     }
 }
 
-/// A locale whose language isn't bundled, from [`parse`] or
-/// [`Language::for_locale`].
+/// A locale whose language isn't bundled, from [`Language::for_locale`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsupportedLocale {
     locale: String,
@@ -79,12 +103,13 @@ impl fmt::Display for UnsupportedLocale {
 
 impl std::error::Error for UnsupportedLocale {}
 
-/// A query split into its time expressions and the rest, from [`parse`] or
-/// [`Language::parse`].
+/// A query split into its time expressions and the rest, as seen on a given
+/// day, from [`parse`] or [`Language::parse`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parsed<'q> {
     query: &'q str,
     phrases: Vec<Phrase<'q>>,
+    today: Date,
 }
 
 impl<'q> Parsed<'q> {
@@ -100,13 +125,19 @@ impl<'q> Parsed<'q> {
         self.phrases.is_empty()
     }
 
+    /// The day the query is seen on.
+    #[must_use]
+    pub fn today(&self) -> Date {
+        self.today
+    }
+
     /// The query without its time expressions, with whitespace tidied up.
     /// Useful for searching the rest of the query. The query itself if
     /// nothing was found.
     ///
     /// ```
-    /// let parsed = whenabouts::parse("bilder fra jul 2019 og påske 2020", "nb").unwrap();
-    /// assert_eq!(parsed.rest(), "bilder og");
+    /// let parsed = whenabouts::parse("photos from christmas 2019 and easter 2020");
+    /// assert_eq!(parsed.rest(), "photos and");
     /// ```
     #[must_use]
     pub fn rest(&self) -> Cow<'q, str> {
@@ -124,95 +155,102 @@ impl<'q> Parsed<'q> {
         Cow::Owned(rest.split_whitespace().collect::<Vec<_>>().join(" "))
     }
 
-    /// Whether `date` matches any of the time expressions, as seen today. See
-    /// [`Parsed::contains_as_of`] and [`Date::today`].
+    /// Whether `date` matches any of the time expressions. Never, if there are
+    /// none. To check many dates, collect [`Parsed::between`] into
+    /// [`RangeSet`](crate::RangeSet) once instead.
+    ///
+    /// ```
+    /// use whenabouts::date;
+    ///
+    /// let parsed = whenabouts::parse_as_of("cats in may last year", date(2026, 10, 15));
+    /// assert!(parsed.contains(date(2025, 5, 17)));
+    /// assert!(!parsed.contains(date(2026, 5, 17)));
+    /// ```
     #[must_use]
     pub fn contains(&self, date: Date) -> bool {
-        self.contains_as_of(Date::today(), date)
-    }
-
-    /// Whether `date` matches any of the time expressions, as seen on `today`.
-    /// Never, if there are none. To check many dates, collect
-    /// [`Occurrences::between`] into [`DateRanges`](crate::DateRanges) once instead.
-    ///
-    /// ```
-    /// use whenabouts::Date;
-    ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
-    /// let parsed = whenabouts::parse("katter i mai i fjor", "nb").unwrap();
-    /// assert!(parsed.contains_as_of(date(2026, 10, 15), date(2025, 5, 17)));
-    /// assert!(!parsed.contains_as_of(date(2026, 10, 15), date(2026, 5, 17)));
-    /// ```
-    #[must_use]
-    pub fn contains_as_of(&self, today: Date, date: Date) -> bool {
         self.phrases
             .iter()
-            .any(|phrase| phrase.clause.contains_as_of(today, date))
+            .any(|phrase| phrase.clause.contains_as_of(self.today, date))
     }
 
-    /// The date ranges of all the time expressions, as seen today. See
-    /// [`Parsed::occurrences_as_of`] and [`Date::today`].
-    #[must_use]
-    pub fn occurrences(&self) -> Occurrences<'_> {
-        self.occurrences_as_of(Date::today())
-    }
-
-    /// The date ranges of all the time expressions, as seen on `today`. See
-    /// [`Occurrences`].
+    /// The date ranges up to and including today, latest first, of all the
+    /// time expressions. See [`Ranges::backward`].
     ///
     /// ```
-    /// use whenabouts::Date;
+    /// use whenabouts::date;
     ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
-    /// let today = date(2026, 10, 15);
-    /// let parsed = whenabouts::parse("jul og påske", "nb").unwrap();
+    /// let parsed = whenabouts::parse_as_of("christmas and easter", date(2026, 10, 15));
     ///
-    /// let latest: Vec<_> = parsed.occurrences_as_of(today).backward().take(2).collect();
+    /// let latest: Vec<_> = parsed.backward().take(2).collect();
     /// assert_eq!(latest, [
-    ///     date(2026, 3, 29)..=date(2026, 4, 6),
-    ///     date(2025, 12, 24)..=date(2025, 12, 26),
+    ///     date(2026, 4, 3)..=date(2026, 4, 6),
+    ///     date(2025, 12, 24)..=date(2025, 12, 25),
     /// ]);
     /// ```
-    #[must_use]
-    pub fn occurrences_as_of(&self, today: Date) -> Occurrences<'_> {
-        let clauses = self.phrases.iter().map(|phrase| &phrase.clause).collect();
-        Occurrences::new(clauses, today)
+    pub fn backward(&self) -> impl Iterator<Item = RangeInclusive<Date>> + '_ {
+        self.ranges().backward()
     }
 
-    /// From the start of the first date range to the end of the last, as seen
-    /// today. See [`Parsed::bounds_as_of`] and [`Date::today`].
+    /// The date ranges up to and including `date`, latest first, of all the
+    /// time expressions. See [`Ranges::backward_from`].
+    pub fn backward_from(&self, date: Date) -> impl Iterator<Item = RangeInclusive<Date>> + '_ {
+        self.ranges().backward_from(date)
+    }
+
+    /// The date ranges from today on, earliest first, of all the time
+    /// expressions. See [`Ranges::forward`].
+    pub fn forward(&self) -> impl Iterator<Item = RangeInclusive<Date>> + '_ {
+        self.ranges().forward()
+    }
+
+    /// The date ranges from `date` on, earliest first, of all the time
+    /// expressions. See [`Ranges::forward_from`].
+    pub fn forward_from(&self, date: Date) -> impl Iterator<Item = RangeInclusive<Date>> + '_ {
+        self.ranges().forward_from(date)
+    }
+
+    /// The date ranges from `first` to `last`, both included, earliest first,
+    /// of all the time expressions. See [`Ranges::between`].
+    pub fn between(
+        &self,
+        first: Date,
+        last: Date,
+    ) -> impl Iterator<Item = RangeInclusive<Date>> + '_ {
+        self.ranges().between(first, last)
+    }
+
+    /// From the start of the first date range to the end of the last, or
+    /// `None` if there are no time expressions or one repeats forever, like
+    /// "mai". Useful to narrow a search before checking dates with
+    /// [`Parsed::contains`].
+    ///
+    /// ```
+    /// use whenabouts::date;
+    ///
+    /// let today = date(2026, 10, 15);
+    /// let parsed = whenabouts::parse_as_of("christmas 2019 and easter 2020", today);
+    /// assert_eq!(parsed.bounds(), Some(date(2019, 12, 24)..=date(2020, 4, 13)));
+    ///
+    /// let parsed = whenabouts::parse_as_of("photos from may", today);
+    /// assert_eq!(parsed.bounds(), None);
+    /// ```
     #[must_use]
     pub fn bounds(&self) -> Option<RangeInclusive<Date>> {
-        self.bounds_as_of(Date::today())
-    }
-
-    /// From the start of the first date range to the end of the last, as seen
-    /// on `today`, or `None` if there are no time expressions or one repeats
-    /// forever, like "mai". Useful to narrow a search before checking dates
-    /// with [`Parsed::contains_as_of`].
-    ///
-    /// ```
-    /// use whenabouts::Date;
-    ///
-    /// let date = |y, m, d| Date::new(y, m, d).unwrap();
-    /// let today = date(2026, 10, 15);
-    /// let parsed = whenabouts::parse("jul 2019 og påske 2020", "nb").unwrap();
-    /// assert_eq!(parsed.bounds_as_of(today), Some(date(2019, 12, 24)..=date(2020, 4, 13)));
-    ///
-    /// let parsed = whenabouts::parse("bilder fra mai", "nb").unwrap();
-    /// assert_eq!(parsed.bounds_as_of(today), None);
-    /// ```
-    #[must_use]
-    pub fn bounds_as_of(&self, today: Date) -> Option<RangeInclusive<Date>> {
         let mut bounds = self
             .phrases
             .iter()
-            .map(|phrase| phrase.clause.bounds_as_of(today));
+            .map(|phrase| phrase.clause.bounds_as_of(self.today));
         let first = bounds.next()??;
         bounds.try_fold(first, |all, bounds| {
             let bounds = bounds?;
             Some((*all.start()).min(*bounds.start())..=(*all.end()).max(*bounds.end()))
         })
+    }
+
+    /// The date ranges of all the time expressions.
+    fn ranges(&self) -> Ranges<'_> {
+        let clauses = self.phrases.iter().map(|phrase| &phrase.clause).collect();
+        Ranges::new(clauses, self.today)
     }
 }
 
@@ -256,14 +294,20 @@ impl<'q> Phrase<'q> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::DateRanges;
+    use crate::RangeSet;
+    use crate::date::date;
+
+    fn nb(query: &str, today: Date) -> Parsed<'_> {
+        Language::for_locale("nb")
+            .unwrap()
+            .parse_as_of(query, today)
+    }
 
     #[test]
     fn backward_is_latest_first() {
-        let date = |y, m, d| Date::new(y, m, d).unwrap();
         let today = date(2026, 10, 15);
-        let parsed = parse("bilder fra oktober", "nb").unwrap();
-        let latest: Vec<_> = parsed.occurrences_as_of(today).backward().take(5).collect();
+        let parsed = nb("bilder fra oktober", today);
+        let latest: Vec<_> = parsed.backward().take(5).collect();
         let october = |year| date(year, 10, 1)..=date(year, 10, 31);
         assert_eq!(
             latest,
@@ -276,7 +320,6 @@ mod tests {
             ]
         );
         let ended: Vec<_> = parsed
-            .occurrences_as_of(today)
             .backward()
             .filter(|range| *range.end() < today)
             .take(2)
@@ -284,8 +327,8 @@ mod tests {
         assert_eq!(ended, [october(2025), october(2024)]);
 
         // Two expressions, merged latest first.
-        let parsed = parse("jul og påske", "nb").unwrap();
-        let latest: Vec<_> = parsed.occurrences_as_of(today).backward().take(3).collect();
+        let parsed = nb("jul og påske", today);
+        let latest: Vec<_> = parsed.backward().take(3).collect();
         assert_eq!(
             latest,
             [
@@ -297,15 +340,26 @@ mod tests {
     }
 
     #[test]
+    fn backward_and_forward_stay_within_1900_to_2100() {
+        let parsed = nb("bilder fra mai", date(2026, 10, 15));
+        let past: Vec<_> = parsed.backward().collect();
+        assert_eq!(past.len(), 127);
+        assert_eq!(past.last(), Some(&(date(1900, 5, 1)..=date(1900, 5, 31))));
+        let future: Vec<_> = parsed.forward().collect();
+        assert_eq!(future.len(), 74);
+        assert_eq!(future.last(), Some(&(date(2100, 5, 1)..=date(2100, 5, 31))));
+        assert_eq!(parsed.backward_from(date(1899, 12, 31)).next(), None);
+        assert_eq!(parsed.forward_from(date(2101, 1, 1)).next(), None);
+    }
+
+    #[test]
     fn collected_ranges_agree_with_contains() {
-        let date = |y, m, d| Date::new(y, m, d).unwrap();
         let today = date(2026, 10, 15);
         // Overlapping: Christmas is inside the Christmas holidays.
         for query in ["jul 2019 og påske 2020", "jul og juleferien"] {
-            let parsed = parse(query, "nb").unwrap();
+            let parsed = nb(query, today);
             assert_eq!(parsed.phrases().len(), 2, "{query}");
-            let resolved: DateRanges = parsed
-                .occurrences_as_of(today)
+            let resolved: RangeSet = parsed
                 .between(date(2019, 1, 1), date(2020, 12, 31))
                 .collect();
             let ranges = resolved.ranges();
@@ -322,7 +376,7 @@ mod tests {
                     };
                     assert_eq!(
                         resolved.contains(day),
-                        parsed.contains_as_of(today, day),
+                        parsed.contains(day),
                         "{query} on {day}"
                     );
                 }

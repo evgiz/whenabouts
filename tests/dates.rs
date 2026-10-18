@@ -775,7 +775,9 @@ impl Day {
     /// The query must have exactly one time expression.
     #[track_caller]
     fn query(&self, query: &str) -> Check {
-        let parsed = whenabouts::parse(query, self.locale).unwrap();
+        let parsed = whenabouts::Language::for_locale(self.locale)
+            .unwrap()
+            .parse_as_of(query, self.today);
         let [phrase] = parsed.phrases() else {
             panic!("{query:?}: expected one phrase, got {parsed:?}");
         };

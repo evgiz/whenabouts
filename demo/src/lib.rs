@@ -116,15 +116,15 @@ fn run(
         .phrases()
         .iter()
         .map(|phrase| {
-            let occurrences = phrase.clause().occurrences_as_of(today);
+            let ranges = phrase.clause().ranges_as_of(today);
             PhraseOutput {
                 text: phrase.text().to_string(),
                 start: utf16(phrase.span().start),
                 end: utf16(phrase.span().end),
                 clause: phrase.clause().to_string(),
-                latest: occurrences.backward().next().map(pair),
+                latest: ranges.backward().next().map(pair),
                 bounds: phrase.clause().bounds_as_of(today).map(pair),
-                ranges: occurrences.between(first, last).map(pair).collect(),
+                ranges: ranges.between(first, last).map(pair).collect(),
             }
         })
         .collect();

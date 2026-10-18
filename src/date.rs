@@ -19,8 +19,34 @@ pub struct Date {
     day: u8,
 }
 
+/// The date, for dates written in code. Usable in constants. See [`Date::new`]
+/// for dates that may not exist.
+///
+/// # Panics
+///
+/// If the date doesn't exist.
+///
+/// ```
+/// use whenabouts::{Date, date};
+///
+/// const LAUNCH: Date = date(2024, 6, 1);
+/// assert_eq!(LAUNCH, Date::new(2024, 6, 1).unwrap());
+/// ```
+///
+/// ```should_panic
+/// whenabouts::date(2024, 2, 30);
+/// ```
+#[must_use]
+pub const fn date(year: i16, month: u8, day: u8) -> Date {
+    assert!(month <= 12 && day <= 31, "invalid date");
+    // Panics if the date doesn't exist.
+    civil::date(year, month as i8, day as i8);
+    Date { year, month, day }
+}
+
 impl Date {
     /// The date, or `None` if it doesn't exist. Years go from -9999 to 9999.
+    /// See [`date`] for dates written in code.
     pub fn new(year: i16, month: u8, day: u8) -> Option<Date> {
         let month = i8::try_from(month).ok()?;
         let day = i8::try_from(day).ok()?;
@@ -46,8 +72,8 @@ impl Date {
     }
 
     /// Today, in this machine's time zone. On a server that is often UTC, which
-    /// may not be the user's date; pass the user's date to the `_as_of` methods
-    /// instead.
+    /// may not be the user's date; pass the user's date to
+    /// [`parse_as_of`](crate::parse_as_of) or the `_as_of` methods instead.
     #[must_use]
     pub fn today() -> Date {
         Date::from_jiff(jiff::Zoned::now().date())
@@ -76,6 +102,22 @@ impl fmt::Display for Date {
         write!(f, "{:04}-{:02}-{:02}", self.year, self.month, self.day)
     }
 }
+
+/// The first day ranges are found from, and the year slot reads, when nothing
+/// earlier is asked for.
+pub(crate) const FIRST: Date = Date {
+    year: 1900,
+    month: 1,
+    day: 1,
+};
+
+/// The last day ranges are found to, and the year slot reads, when nothing
+/// later is asked for.
+pub(crate) const LAST: Date = Date {
+    year: 2100,
+    month: 12,
+    day: 31,
+};
 
 /// Any range of dates, like `..today` or `..`, as a half-open range.
 pub(crate) fn to_jiff(range: impl RangeBounds<Date>) -> Range<civil::Date> {

@@ -6,6 +6,7 @@ use std::fmt;
 use std::sync::LazyLock;
 
 use crate::clause::{Clause, ParseClauseError, Unit, Weekday};
+use crate::date;
 use crate::parsed::UnsupportedLocale;
 use crate::tokenize::{Token, tokenize};
 
@@ -88,17 +89,17 @@ impl Language {
     /// # Ok::<(), whenabouts::UnsupportedLocale>(())
     /// ```
     pub fn for_locale(locale: &str) -> Result<&'static Language, UnsupportedLocale> {
-        static NB: LazyLock<Language> =
-            LazyLock::new(|| bundled("nb", include_str!("../languages/nb.toml")));
-        static EN: LazyLock<Language> =
-            LazyLock::new(|| bundled("en", include_str!("../languages/en.toml")));
-
         let language = locale.split(['-', '_']).next().unwrap_or("").to_lowercase();
         match language.as_str() {
             "nb" | "no" => Ok(&NB),
             "en" => Ok(&EN),
             _ => Err(UnsupportedLocale::new(locale)),
         }
+    }
+
+    /// The bundled English, used by [`parse`](crate::parse).
+    pub(crate) fn english() -> &'static Language {
+        &EN
     }
 
     /// Reads a language file.
@@ -306,6 +307,11 @@ fn wrong_type(key: &str, expected: &str, value: &toml::Value) -> LanguageError {
     ))
 }
 
+static EN: LazyLock<Language> =
+    LazyLock::new(|| bundled("en", include_str!("../languages/en.toml")));
+static NB: LazyLock<Language> =
+    LazyLock::new(|| bundled("nb", include_str!("../languages/nb.toml")));
+
 /// Reads a language file that comes with the library. Mistakes in it are bugs,
 /// and the tests catch them.
 fn bundled(name: &str, source: &str) -> Language {
@@ -397,7 +403,10 @@ impl Slot {
             Slot::N => digits().or_else(|| language.numbers.get(text).copied())?,
             Slot::Day => digits().filter(|_| text.len() <= 2)?,
             Slot::Month => digits().filter(|_| text.len() <= 2)?,
-            Slot::Year => digits().filter(|n| text.len() == 4 && (1900..=2100).contains(n))?,
+            Slot::Year => {
+                let years = date::FIRST.year() as u32..=date::LAST.year() as u32;
+                digits().filter(|n| text.len() == 4 && years.contains(n))?
+            }
             Slot::ShortYear => match digits().filter(|_| text.len() == 2)? {
                 n @ 0..70 => 2000 + n,
                 n => 1900 + n,
