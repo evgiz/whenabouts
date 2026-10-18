@@ -2,6 +2,7 @@
 
 use std::cmp::Reverse;
 use std::ops::{Range, RangeInclusive};
+use std::{slice, vec};
 
 use jiff::civil;
 use jiff::{Span, ToSpan};
@@ -11,6 +12,19 @@ use crate::date::{self, Date};
 
 /// Date ranges, sorted and merged, to check many dates quickly. Collect them
 /// from [`Ranges`] or [`Parsed`](crate::Parsed), like [`Ranges::between`].
+///
+/// ```
+/// use whenabouts::{RangeSet, date};
+///
+/// let parsed = whenabouts::parse_as_of("july and august", date(2026, 10, 15));
+/// let set: RangeSet = parsed.between(date(2025, 1, 1), date(2026, 12, 31)).collect();
+///
+/// assert_eq!(set.len(), 2);
+/// assert!(set.contains(date(2025, 8, 15)));
+/// for range in &set {
+///     assert!(range.start() <= range.end());
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RangeSet {
     /// Sorted, and neither overlapping nor touching.
@@ -42,10 +56,45 @@ impl RangeSet {
             .is_some_and(|range| *range.start() <= date)
     }
 
+    /// How many ranges there are, after merging.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.ranges.len()
+    }
+
+    /// Whether there are no ranges.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.ranges.is_empty()
+    }
+
+    /// The ranges, earliest first.
+    pub fn iter(&self) -> slice::Iter<'_, RangeInclusive<Date>> {
+        self.ranges.iter()
+    }
+
     /// The ranges, earliest first.
     #[must_use]
-    pub fn ranges(&self) -> &[RangeInclusive<Date>] {
+    pub fn as_slice(&self) -> &[RangeInclusive<Date>] {
         &self.ranges
+    }
+}
+
+impl IntoIterator for RangeSet {
+    type Item = RangeInclusive<Date>;
+    type IntoIter = vec::IntoIter<RangeInclusive<Date>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.ranges.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a RangeSet {
+    type Item = &'a RangeInclusive<Date>;
+    type IntoIter = slice::Iter<'a, RangeInclusive<Date>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.ranges.iter()
     }
 }
 
@@ -204,7 +253,7 @@ impl<'a> Ranges<'a> {
     /// ]);
     ///
     /// let this_year: RangeSet = parsed.between(date(2026, 1, 1), today).collect();
-    /// assert_eq!(this_year.ranges(), [date(2026, 7, 1)..=date(2026, 8, 31)]);
+    /// assert_eq!(this_year.as_slice(), [date(2026, 7, 1)..=date(2026, 8, 31)]);
     /// ```
     pub fn between(
         &self,
@@ -292,7 +341,7 @@ impl Clause {
             .ranges_in(today.to_jiff(), Order::Earliest, all)
             .map(date::from_jiff)
             .collect();
-        let (first, last) = (ranges.ranges().first()?, ranges.ranges().last()?);
+        let (first, last) = (ranges.as_slice().first()?, ranges.as_slice().last()?);
         Some(*first.start()..=*last.end())
     }
 

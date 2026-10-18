@@ -69,7 +69,7 @@ assert_eq!(latest[2], date(2024, 10, 1)..=date(2024, 10, 31));
 
 // Or every october since 2020
 let since_2020: RangeSet = parsed.between(date(2020, 1, 1), today).collect();
-assert_eq!(since_2020.ranges().len(), 7);
+assert_eq!(since_2020.len(), 7);
 
 ```
 

@@ -364,7 +364,7 @@ mod tests {
             let resolved: RangeSet = parsed
                 .between(date(2019, 1, 1), date(2020, 12, 31))
                 .collect();
-            let ranges = resolved.ranges();
+            let ranges = resolved.as_slice();
             assert!(
                 ranges
                     .windows(2)
