@@ -42,7 +42,9 @@ mod tokenize;
 pub use clause::{Clause, ParseClauseError};
 pub use date::{Date, date};
 pub use language::{Language, LanguageError};
-pub use parsed::{Parsed, Phrase, UnsupportedLocale, parse, parse_as_of};
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+pub use parsed::parse;
+pub use parsed::{Parsed, Phrase, UnsupportedLocale, parse_as_of};
 pub use resolve::{RangeSet, Ranges};
 
 /// Runs the examples in the README as tests.

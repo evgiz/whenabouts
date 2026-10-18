@@ -75,6 +75,7 @@ impl Date {
     /// may not be the user's date; pass the user's date to
     /// [`parse_as_of`](crate::parse_as_of) or the `_as_of` methods instead.
     #[must_use]
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
     pub fn today() -> Date {
         Date::from_jiff(jiff::Zoned::now().date())
     }

@@ -241,6 +241,7 @@ impl Clause {
     /// Whether `date` matches the clause, as seen today. See
     /// [`Clause::contains_as_of`] and [`Date::today`].
     #[must_use]
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
     pub fn contains(&self, date: Date) -> bool {
         self.contains_as_of(Date::today(), date)
     }
@@ -248,6 +249,7 @@ impl Clause {
     /// The date ranges the clause covers, as seen today. See
     /// [`Clause::ranges_as_of`] and [`Date::today`].
     #[must_use]
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
     pub fn ranges(&self) -> Ranges<'_> {
         self.ranges_as_of(Date::today())
     }
@@ -263,6 +265,7 @@ impl Clause {
     /// today, or `None` if the clause repeats forever. See
     /// [`Clause::bounds_as_of`] and [`Date::today`].
     #[must_use]
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
     pub fn bounds(&self) -> Option<RangeInclusive<Date>> {
         self.bounds_as_of(Date::today())
     }

@@ -11,6 +11,7 @@ use crate::resolve::Ranges;
 /// Finds the time expressions in `query`, in English, as seen today. See
 /// [`parse_as_of`] and [`Date::today`].
 #[must_use]
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 pub fn parse(query: &str) -> Parsed<'_> {
     parse_as_of(query, Date::today())
 }
@@ -42,6 +43,7 @@ impl Language {
     /// # Ok::<(), whenabouts::UnsupportedLocale>(())
     /// ```
     #[must_use]
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
     pub fn parse<'q>(&self, query: &'q str) -> Parsed<'q> {
         self.parse_as_of(query, Date::today())
     }
