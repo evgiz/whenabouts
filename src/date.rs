@@ -94,7 +94,7 @@ impl Date {
 
     /// The day after, or this day if it is the last one there is.
     pub(crate) fn tomorrow(self) -> Date {
-        Date::from_jiff(self.to_jiff().saturating_add(1.day()))
+        self.to_jiff().tomorrow().map_or(self, Date::from_jiff)
     }
 }
 

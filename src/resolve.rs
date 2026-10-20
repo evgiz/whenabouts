@@ -7,7 +7,7 @@ use std::{slice, vec};
 use jiff::civil;
 use jiff::{Span, ToSpan};
 
-use crate::clause::{Anchor, Clause, MonthDay, Part, Unit};
+use crate::clause::{Anchor, Clause, MonthDay, Part, Unit, Weekday};
 use crate::date::{self, Date};
 
 /// Date ranges, sorted and merged, to check many dates quickly. Collect them
@@ -428,38 +428,17 @@ impl Clause {
     #[must_use]
     pub fn contains_as_of(&self, today: Date, date: Date) -> bool {
         let (today, date) = (today.to_jiff(), date.to_jiff());
-        if !self.in_period(date) {
-            return false;
-        }
         match self.anchor() {
-            None => true,
-            // Which occurrence is the latest depends on the ones before it.
-            Some(Anchor::Back(_)) => {
-                let day = date..date.saturating_add(1.day());
-                self.ranges_in(today, Order::Nearest(date), day)
-                    .next()
-                    .is_some()
+            None => self.in_period(date),
+            Some(anchor) if self.parts().is_empty() => {
+                anchor.days(today).is_some_and(|days| days.contains(&date))
             }
-            Some(anchor) => anchor.days(today).is_some_and(|days| {
-                let start = if self.parts().is_empty() {
-                    date
-                } else {
-                    self.occurrence_start(date)
-                };
-                days.contains(&self.anchor_day(start))
-            }),
+            // The anchor picks whole occurrences, which may start before `date`.
+            Some(_) => {
+                let day = date..date.saturating_add(1.day());
+                self.in_period(date) && self.ranges_in(today, Order::Earliest, day).next().is_some()
+            }
         }
-    }
-
-    /// The first day of the occurrence of the period that `date` is in.
-    fn occurrence_start(&self, date: civil::Date) -> civil::Date {
-        let mut start = date;
-        while let Ok(before) = start.yesterday()
-            && self.in_period(before)
-        {
-            start = before;
-        }
-        start
     }
 
     fn in_period(&self, date: civil::Date) -> bool {
@@ -468,23 +447,63 @@ impl Clause {
 
     /// The occurrences of the period that start in `year`, in order.
     fn occurrences_in(&self, year: i16) -> Vec<Range<civil::Date>> {
-        let Ok(first) = civil::Date::new(year, 1, 1) else {
+        let Some(this) = Year::new(year) else {
             return Vec::new();
         };
-        let end = |start: civil::Date| {
-            start
-                .series(1.day())
-                .find(|&day| !self.in_period(day))
-                .unwrap_or(civil::Date::MAX)
-        };
-        first
-            .series(1.day())
-            .take_while(|day| day.year() == year)
-            .filter(|&day| {
-                self.in_period(day) && day.yesterday().is_ok_and(|before| !self.in_period(before))
+        let mut days = self.days_in(this);
+        // One under way on January 1 may have started the year before.
+        if days.first().is_some_and(|range| range.start == 0)
+            && this
+                .first
+                .yesterday()
+                .ok()
+                .is_none_or(|day| self.in_period(day))
+        {
+            days.remove(0);
+        }
+        days.into_iter()
+            .map(|range| {
+                let end = if range.end == this.days {
+                    self.end_after(this)
+                } else {
+                    this.date(range.end)
+                };
+                this.date(range.start)..end
             })
-            .map(|start| start..end(start))
             .collect()
+    }
+
+    /// The days of `year` in the period, by day number.
+    fn days_in(&self, year: Year) -> Vec<Range<i32>> {
+        let Some((first, rest)) = self.parts().split_first() else {
+            return std::iter::once(0..year.days).collect();
+        };
+        // Parts are sorted, so weekdays come last and are only found within
+        // the days the others leave.
+        let mut days = rest.iter().fold(first.days_in(year), |days, part| {
+            part.days_within(year, &days)
+        });
+        // Join the ranges that touch.
+        days.dedup_by(|next, last| {
+            let touch = last.end == next.start;
+            if touch {
+                last.end = next.end;
+            }
+            touch
+        });
+        days
+    }
+
+    /// The end of an occurrence under way at the end of `year`.
+    fn end_after(&self, mut year: Year) -> civil::Date {
+        while let Some(next) = Year::new(year.year + 1) {
+            match self.days_in(next).first() {
+                Some(range) if range.start == 0 && range.end == next.days => year = next,
+                Some(range) if range.start == 0 => return next.date(range.end),
+                _ => return next.first,
+            }
+        }
+        civil::Date::MAX
     }
 
     /// The occurrences in `years` that start by `date`, latest first.
@@ -511,6 +530,79 @@ impl Clause {
         } else {
             start
         }
+    }
+}
+
+/// The days in both `a` and `b`, each sorted and not overlapping.
+fn intersect(a: &[Range<i32>], b: &[Range<i32>]) -> Vec<Range<i32>> {
+    let (mut i, mut j) = (0, 0);
+    let mut both = Vec::new();
+    while i < a.len() && j < b.len() {
+        let range = a[i].start.max(b[j].start)..a[i].end.min(b[j].end);
+        if !range.is_empty() {
+            both.push(range);
+        }
+        if a[i].end < b[j].end {
+            i += 1;
+        } else {
+            j += 1;
+        }
+    }
+    both
+}
+
+/// A year, with its days numbered from 0 on January 1.
+#[derive(Clone, Copy)]
+struct Year {
+    year: i16,
+    first: civil::Date,
+    days: i32,
+    /// The weekday of January 1, from 0 on Monday.
+    weekday: i32,
+}
+
+impl Year {
+    fn new(year: i16) -> Option<Year> {
+        let first = civil::Date::new(year, 1, 1).ok()?;
+        Some(Year {
+            year,
+            first,
+            days: i32::from(first.days_in_year()),
+            weekday: i32::from(first.weekday().to_monday_zero_offset()),
+        })
+    }
+
+    /// The number of the first day of `month`, or of the next year for 13.
+    fn month(self, month: u8) -> i32 {
+        const STARTS: [i32; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
+        let leap = i32::from(self.days == 366 && month > 2);
+        STARTS[month as usize - 1] + leap
+    }
+
+    /// The number of `day` in `month`, or of the next month's first day if
+    /// the month is too short.
+    fn day(self, month: u8, day: u8) -> i32 {
+        (self.month(month) + i32::from(day) - 1).min(self.month(month + 1))
+    }
+
+    /// Day `n`, or January 1 the year after for the day after the last.
+    fn date(self, n: i32) -> civil::Date {
+        if n == self.days {
+            return civil::Date::new(self.year + 1, 1, 1).unwrap_or(civil::Date::MAX);
+        }
+        let month = (1..=12).rfind(|&month| self.month(month) <= n).unwrap_or(1);
+        civil::date(self.year, month as i8, (n - self.month(month) + 1) as i8)
+    }
+
+    /// The number of the Monday of ISO week 1.
+    fn first_monday(self) -> i32 {
+        3 - (self.weekday + 3) % 7
+    }
+
+    /// How many ISO weeks the year has.
+    fn weeks(self) -> i32 {
+        let long = self.weekday == 3 || (self.days == 366 && self.weekday == 2);
+        if long { 53 } else { 52 }
     }
 }
 
@@ -577,9 +669,8 @@ impl Part {
             Part::Month(a, b) => between(month, a, b),
             Part::Week(a, b) => between(date.iso_week_date().week() as u8, a, b),
             Part::Easter(a, b) => {
-                let easter = easter(date.year());
-                let days = |n: i16| easter.saturating_add(i64::from(n).days());
-                days(a) <= date && date <= days(b)
+                let after = date.day_of_year() - easter(date.year()).day_of_year();
+                a <= after && after <= b
             }
             Part::Date(a, b) => between(MonthDay { month, day }, a, b),
             Part::Day(a, b) => between(day, a, b),
@@ -589,6 +680,96 @@ impl Part {
                 b as u8,
             ),
         }
+    }
+
+    /// The days of `within` in the part.
+    fn days_within(self, year: Year, within: &[Range<i32>]) -> Vec<Range<i32>> {
+        match self {
+            Part::Weekday(a, b) => within
+                .iter()
+                .flat_map(|range| weekdays(a, b, year, range.clone()))
+                .collect(),
+            _ => intersect(within, &self.days_in(year)),
+        }
+    }
+
+    /// The days of `year` in the part, by day number, sorted.
+    fn days_in(self, year: Year) -> Vec<Range<i32>> {
+        let mut days = Vec::new();
+        match self {
+            Part::Month(a, b) => {
+                days.extend(spans(
+                    a <= b,
+                    year.month(a),
+                    year.month(b + 1),
+                    0..year.days,
+                ));
+            }
+            Part::Date(a, b) => {
+                let start = year.day(a.month, a.day);
+                let end = year.day(b.month, b.day + 1);
+                days.extend(spans(a <= b, start, end, 0..year.days));
+            }
+            Part::Day(a, b) => {
+                for month in 1..=12 {
+                    let all = year.month(month)..year.month(month + 1);
+                    let (start, end) = (year.day(month, a), year.day(month, b + 1));
+                    days.extend(spans(a <= b, start, end, all));
+                }
+            }
+            Part::Weekday(a, b) => days.extend(weekdays(a, b, year, 0..year.days)),
+            // Days early and late in the year can be in the ISO years around it.
+            Part::Week(a, b) => {
+                let before = Year::new(year.year - 1);
+                let isos = [
+                    (before, -before.map_or(0, |before| before.days)),
+                    (Some(year), 0),
+                    (Year::new(year.year + 1), year.days),
+                ];
+                for (iso, offset) in isos {
+                    let Some(iso) = iso else { continue };
+                    let monday = |week: u8| {
+                        let week = i32::from(week).min(iso.weeks() + 1);
+                        offset + iso.first_monday() + 7 * (week - 1)
+                    };
+                    let all = monday(1)..monday(54);
+                    days.extend(spans(a <= b, monday(a), monday(b + 1), all));
+                }
+            }
+            Part::Easter(a, b) => {
+                let easter = i32::from(easter(year.year).day_of_year()) - 1;
+                days.push(easter + i32::from(a)..easter + i32::from(b) + 1);
+            }
+        }
+        days.into_iter()
+            .map(|range| range.start.max(0)..range.end.min(year.days))
+            .filter(|range| !range.is_empty())
+            .collect()
+    }
+}
+
+/// The days of `within` from weekday `a` to `b`.
+fn weekdays(
+    a: Weekday,
+    b: Weekday,
+    year: Year,
+    within: Range<i32>,
+) -> impl Iterator<Item = Range<i32>> {
+    let length = (b as i32 - a as i32).rem_euclid(7) + 1;
+    let first = within.start - (year.weekday + within.start - a as i32).rem_euclid(7);
+    (first..within.end)
+        .step_by(7)
+        .map(move |start| start.max(within.start)..(start + length).min(within.end))
+        .filter(|range| !range.is_empty())
+}
+
+/// The days from `start` to `end`, or when not `inside`, the days of `all`
+/// before `end` and from `start` on.
+fn spans(inside: bool, start: i32, end: i32, all: Range<i32>) -> [Range<i32>; 2] {
+    if inside {
+        [start..end, 0..0]
+    } else {
+        [all.start..end, start..all.end]
     }
 }
 
@@ -728,6 +909,46 @@ mod tests {
                 expected,
                 "{clause} on {day}"
             );
+        }
+    }
+
+    #[test]
+    fn part_days_agree_with_contains() {
+        for clause in [
+            "month(5)",
+            "month(12..2)",
+            "month(1..12)",
+            "date(02-29)",
+            "date(02-28..03-01)",
+            "date(12-31..01-01)",
+            "date(05-20..05-10)",
+            "day(31)",
+            "day(25..5)",
+            "weekday(sat..sun)",
+            "weekday(fri..mon)",
+            "weekday(mon..sun)",
+            "week(1)",
+            "week(53)",
+            "week(52..1)",
+            "week(27..31)",
+            "easter(-7..1)",
+            "easter(-200..300)",
+        ] {
+            let parsed: Clause = clause.parse().unwrap();
+            let part = parsed.parts()[0];
+            for year in (1899..=2101).chain([-9999, 9999]) {
+                let year = Year::new(year).unwrap();
+                let mut found = vec![false; year.days as usize];
+                for range in part.days_in(year) {
+                    for n in range {
+                        found[n as usize] = true;
+                    }
+                }
+                for (n, &found) in found.iter().enumerate() {
+                    let day = year.date(n as i32);
+                    assert_eq!(found, part.contains(day), "{clause} on {day}");
+                }
+            }
         }
     }
 
