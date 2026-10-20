@@ -22,25 +22,39 @@ pub struct Language {
     pub(crate) prepositions: Vec<Vec<String>>,
     /// Words allowed between two times that belong together, like "i" in "mai i 2020".
     pub(crate) joiners: Vec<String>,
-    pub(crate) patterns: Vec<Pattern>,
+    phrases: Vec<Phrase>,
+    /// The phrases that may match from a word, by index, in order.
+    by_first_word: HashMap<String, Vec<usize>>,
+    /// The phrases that start with a slot, which may match from any word.
+    slot_first: Vec<usize>,
     numbers: HashMap<String, u32>,
     units: HashMap<String, Unit>,
     /// The day weeks back from now start on, like "last week".
     week_start: Weekday,
 }
 
-/// A pattern of words and slots, and the clause it means.
+/// A phrase of words and slots, and the clause it means.
 #[derive(Clone)]
-pub(crate) struct Pattern {
-    elements: Vec<Element>,
-    clause: String,
+pub(crate) struct Phrase {
+    words: Vec<Word>,
+    meaning: Meaning,
     /// Only counts next to another time.
     pub(crate) partial: bool,
 }
 
+/// What a phrase means.
 #[derive(Clone)]
-enum Element {
-    Word(String),
+enum Meaning {
+    /// A phrase without slots always means the same.
+    Fixed(Clause),
+    /// A clause with `<slots>`, filled in from the query.
+    Slots(String),
+}
+
+/// A word of a phrase: fixed text, or a slot that reads a value.
+#[derive(Clone)]
+enum Word {
+    Text(String),
     Slot(Slot),
 }
 
@@ -173,7 +187,9 @@ impl Language {
         Language {
             prepositions: Vec::new(),
             joiners: Vec::new(),
-            patterns: Vec::new(),
+            phrases: Vec::new(),
+            by_first_word: HashMap::new(),
+            slot_first: Vec::new(),
             numbers: HashMap::new(),
             units: HashMap::new(),
             week_start: Weekday::Mon,
@@ -204,16 +220,21 @@ impl Language {
             for (written, clause) in section {
                 let error =
                     |error: String| LanguageError::new(format!("phrase {written:?}: {error}"));
-                for pattern in expand(&written)? {
-                    let compiled = Pattern {
-                        elements: parse_pattern(&pattern).map_err(error)?,
-                        clause: clause.clone(),
-                        partial,
+                for form in expand(&written)? {
+                    let words = parse_words(&form).map_err(error)?;
+                    let has_slots = words.iter().any(|word| matches!(word, Word::Slot(_)));
+                    let filled =
+                        fill(&clause, &example_values()).map_err(|e| error(e.to_string()))?;
+                    let meaning = if has_slots {
+                        Meaning::Slots(clause.clone())
+                    } else {
+                        Meaning::Fixed(filled)
                     };
-                    compiled
-                        .fill(&example_values())
-                        .map_err(|e| error(e.to_string()))?;
-                    self.patterns.push(compiled);
+                    self.phrases.push(Phrase {
+                        words,
+                        meaning,
+                        partial,
+                    });
                 }
             }
         }
@@ -232,7 +253,41 @@ impl Language {
                 self.numbers.insert(word, n);
             }
         }
+        self.index_phrases();
         Ok(())
+    }
+
+    /// Indexes the phrases by their first word, so a query only tries the
+    /// ones that may match.
+    fn index_phrases(&mut self) {
+        self.by_first_word.clear();
+        self.slot_first.clear();
+        for (i, phrase) in self.phrases.iter().enumerate() {
+            match &phrase.words[0] {
+                Word::Text(text) => self.by_first_word.entry(text.clone()).or_default().push(i),
+                Word::Slot(_) => self.slot_first.push(i),
+            }
+        }
+        // Words a slot can read also try the phrases that start with a slot.
+        for word in self.numbers.keys().chain(self.units.keys()) {
+            self.by_first_word.entry(word.clone()).or_default();
+        }
+        for (word, indexes) in &mut self.by_first_word {
+            if is_digits(word) || self.numbers.contains_key(word) || self.units.contains_key(word) {
+                indexes.extend(&self.slot_first);
+                indexes.sort_unstable();
+            }
+        }
+    }
+
+    /// The phrases that may match from `word`, in order.
+    pub(crate) fn phrases_from(&self, word: &str) -> impl Iterator<Item = &Phrase> {
+        let indexes = match self.by_first_word.get(word) {
+            Some(indexes) => indexes.as_slice(),
+            None if is_digits(word) => &self.slot_first,
+            None => &[],
+        };
+        indexes.iter().map(|&i| &self.phrases[i])
     }
 }
 
@@ -338,7 +393,7 @@ impl fmt::Debug for Language {
     }
 }
 
-impl Pattern {
+impl Phrase {
     /// Matches the phrase against the tokens at `start`.
     /// Returns the number of tokens matched and the clause.
     pub(crate) fn matches(
@@ -348,29 +403,32 @@ impl Pattern {
         start: usize,
     ) -> Option<(usize, Clause)> {
         let mut values = Vec::new();
-        for (i, element) in self.elements.iter().enumerate() {
+        for (i, word) in self.words.iter().enumerate() {
             let token = tokens.get(start + i)?;
-            match element {
-                Element::Word(word) if *word == token.text => {}
-                Element::Word(_) => return None,
-                Element::Slot(slot) => values.push((*slot, slot.read(language, &token.text)?)),
+            match word {
+                Word::Text(text) if *text == token.text => {}
+                Word::Text(_) => return None,
+                Word::Slot(slot) => values.push((*slot, slot.read(language, &token.text)?)),
             }
         }
-        let clause = self
-            .fill(&values)
-            .ok()?
-            .with_week_start(language.week_start);
-        Some((self.elements.len(), clause))
+        let clause = match &self.meaning {
+            Meaning::Fixed(clause) => clause.clone(),
+            Meaning::Slots(clause) => fill(clause, &values).ok()?,
+        };
+        Some((
+            self.words.len(),
+            clause.with_week_start(language.week_start),
+        ))
     }
+}
 
-    /// Fills the slot values into the clause, e.g. `ago(<unit>, <n>)` → `ago(year, 3)`.
-    fn fill(&self, values: &[(Slot, String)]) -> Result<Clause, ParseClauseError> {
-        let mut clause = self.clause.clone();
-        for (slot, value) in values {
-            clause = clause.replace(&format!("<{}>", slot.name()), value);
-        }
-        clause.parse()
+/// Fills the slot values into a clause, e.g. `ago(<unit>, <n>)` → `ago(year, 3)`.
+fn fill(clause: &str, values: &[(Slot, String)]) -> Result<Clause, ParseClauseError> {
+    let mut clause = clause.to_string();
+    for (slot, value) in values {
+        clause = clause.replace(&format!("<{}>", slot.name()), value);
     }
+    clause.parse()
 }
 
 impl Slot {
@@ -417,6 +475,10 @@ impl Slot {
     }
 }
 
+fn is_digits(text: &str) -> bool {
+    text.bytes().all(|byte| byte.is_ascii_digit())
+}
+
 /// Values used to check that every phrase in a file gives a valid clause.
 fn example_values() -> Vec<(Slot, String)> {
     [
@@ -433,12 +495,12 @@ fn example_values() -> Vec<(Slot, String)> {
 }
 
 /// Splits a pattern into words and `<slots>`.
-fn parse_pattern(pattern: &str) -> Result<Vec<Element>, String> {
+fn parse_words(pattern: &str) -> Result<Vec<Word>, String> {
     let tokens = tokenize(pattern);
     if tokens.is_empty() {
         return Err("empty pattern".to_string());
     }
-    let mut elements = Vec::new();
+    let mut words = Vec::new();
     let mut i = 0;
     while i < tokens.len() {
         if tokens[i].text == "<" {
@@ -447,14 +509,14 @@ fn parse_pattern(pattern: &str) -> Result<Vec<Element>, String> {
                 .and_then(|name| Slot::from_name(&name.text))
                 .filter(|_| tokens.get(i + 2).is_some_and(|close| close.text == ">"))
                 .ok_or_else(|| format!("invalid slot in {pattern:?}"))?;
-            elements.push(Element::Slot(slot));
+            words.push(Word::Slot(slot));
             i += 3;
         } else {
-            elements.push(Element::Word(tokens[i].text.clone()));
+            words.push(Word::Text(tokens[i].text.clone()));
             i += 1;
         }
     }
-    Ok(elements)
+    Ok(words)
 }
 
 /// Expands word forms: `jul{,en,a}` → `jul`, `julen`, `jula`.

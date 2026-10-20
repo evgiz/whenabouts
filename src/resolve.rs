@@ -7,7 +7,7 @@ use std::{slice, vec};
 use jiff::civil;
 use jiff::{Span, ToSpan};
 
-use crate::clause::{Anchor, Clause, MonthDay, Part, Unit, Weekday};
+use crate::clause::{Anchor, Clause, MonthDay, Part, Unit};
 use crate::date::{self, Date};
 
 /// Date ranges, sorted and merged, to check many dates quickly. Collect them
@@ -478,10 +478,8 @@ impl Clause {
         let Some((first, rest)) = self.parts().split_first() else {
             return std::iter::once(0..year.days).collect();
         };
-        // Parts are sorted, so weekdays come last and are only found within
-        // the days the others leave.
         let mut days = rest.iter().fold(first.days_in(year), |days, part| {
-            part.days_within(year, &days)
+            intersect(&days, &part.days_in(year))
         });
         // Join the ranges that touch.
         days.dedup_by(|next, last| {
@@ -682,17 +680,6 @@ impl Part {
         }
     }
 
-    /// The days of `within` in the part.
-    fn days_within(self, year: Year, within: &[Range<i32>]) -> Vec<Range<i32>> {
-        match self {
-            Part::Weekday(a, b) => within
-                .iter()
-                .flat_map(|range| weekdays(a, b, year, range.clone()))
-                .collect(),
-            _ => intersect(within, &self.days_in(year)),
-        }
-    }
-
     /// The days of `year` in the part, by day number, sorted.
     fn days_in(self, year: Year) -> Vec<Range<i32>> {
         let mut days = Vec::new();
@@ -717,7 +704,13 @@ impl Part {
                     days.extend(spans(a <= b, start, end, all));
                 }
             }
-            Part::Weekday(a, b) => days.extend(weekdays(a, b, year, 0..year.days)),
+            Part::Weekday(a, b) => {
+                let length = (b as i32 - a as i32).rem_euclid(7) + 1;
+                let first = (a as i32 - year.weekday).rem_euclid(7) - 7;
+                for start in (first..year.days).step_by(7) {
+                    days.push(start..start + length);
+                }
+            }
             // Days early and late in the year can be in the ISO years around it.
             Part::Week(a, b) => {
                 let before = Year::new(year.year - 1);
@@ -746,21 +739,6 @@ impl Part {
             .filter(|range| !range.is_empty())
             .collect()
     }
-}
-
-/// The days of `within` from weekday `a` to `b`.
-fn weekdays(
-    a: Weekday,
-    b: Weekday,
-    year: Year,
-    within: Range<i32>,
-) -> impl Iterator<Item = Range<i32>> {
-    let length = (b as i32 - a as i32).rem_euclid(7) + 1;
-    let first = within.start - (year.weekday + within.start - a as i32).rem_euclid(7);
-    (first..within.end)
-        .step_by(7)
-        .map(move |start| start.max(within.start)..(start + length).min(within.end))
-        .filter(|range| !range.is_empty())
 }
 
 /// The days from `start` to `end`, or when not `inside`, the days of `all`
@@ -938,8 +916,14 @@ mod tests {
             let part = parsed.parts()[0];
             for year in (1899..=2101).chain([-9999, 9999]) {
                 let year = Year::new(year).unwrap();
+                let days = part.days_in(year);
+                assert!(
+                    days.windows(2).all(|pair| pair[0].end <= pair[1].start),
+                    "{clause} in {}: sorted and not overlapping",
+                    year.year
+                );
                 let mut found = vec![false; year.days as usize];
-                for range in part.days_in(year) {
+                for range in days {
                     for n in range {
                         found[n as usize] = true;
                     }

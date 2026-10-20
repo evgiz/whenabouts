@@ -47,8 +47,7 @@ fn find_phrases(language: &Language, tokens: &[Token]) -> Vec<Found> {
     let mut start = 0;
     while start < tokens.len() {
         let longest = language
-            .patterns
-            .iter()
+            .phrases_from(&tokens[start].text)
             .filter_map(|phrase| {
                 let (len, clause) = phrase.matches(language, tokens, start)?;
                 Some(Found {
