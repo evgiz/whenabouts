@@ -1,9 +1,9 @@
 [package]
 name = "whenabouts"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2024"
 rust-version = "1.88"
-description = "Fast natural-language date period perser for search queries"
+description = "Fast natural-language date period parser for search queries"
 license = "MIT"
 repository = "https://github.com/evgiz/whenabouts"
 keywords = ["date", "natural-language", "search", "parser", "time"]
